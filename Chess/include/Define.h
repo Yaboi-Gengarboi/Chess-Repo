@@ -10,6 +10,7 @@
 #define DEFINE_H_INCLUDED
 
 #include <cstdint>
+using std::int8_t;
 using std::uint8_t;
 
 #include <string>
