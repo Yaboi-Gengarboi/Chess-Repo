@@ -22,7 +22,9 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Define.h" />
     <ClInclude Include="include\JMatrix.h" />
+    <ClInclude Include="include\Position.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

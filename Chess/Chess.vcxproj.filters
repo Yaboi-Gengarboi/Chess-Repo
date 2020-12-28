@@ -23,5 +23,11 @@
     <ClInclude Include="include\JMatrix.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\Position.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Define.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
