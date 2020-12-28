@@ -35,7 +35,7 @@ struct Position
 	Position& operator = (Position && other) = default;
 
 	// Destructor.
-	~Position();
+	~Position() = default;
 
 	// Returns a std::string representation of the Position object.
 	// Format: "{ x, y }".

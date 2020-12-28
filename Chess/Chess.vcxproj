@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Position.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Define.h" />
@@ -91,6 +92,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>E:\vcpkg\installed\x64-windows\include;E:\Chess Repo\Chess\include;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\vcpkg\installed\x64-windows\lib;$(LibraryPath)</LibraryPath>
+    <SourcePath>E:\Chess Repo\Chess\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
