@@ -32,5 +32,11 @@
     <ClInclude Include="include\Define.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\Piece.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Graphics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

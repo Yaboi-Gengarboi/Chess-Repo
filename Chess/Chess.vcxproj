@@ -24,7 +24,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Define.h" />
+    <ClInclude Include="include\Graphics.h" />
     <ClInclude Include="include\JMatrix.h" />
+    <ClInclude Include="include\Piece.h" />
     <ClInclude Include="include\Position.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
