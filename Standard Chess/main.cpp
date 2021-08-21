@@ -1,12 +1,8 @@
 // Standard Chess
 // main.cpp
 // Created on 2021-08-18 by Justyn Durnford
-// Last modified on 2021-08-20 by Justyn Durnford
+// Last modified on 2021-08-21 by Justyn Durnford
 // Main source file for the Standard Chess project.
-
-#ifndef _SFML_
-	#define _SFML_
-#endif // #ifndef _SFML_
 
 #include <array>
 using std::array;
@@ -29,8 +25,10 @@ using std::vector;
 
 #include <SFML/Graphics.hpp>
 using sf::Event;
+using sf::Font;
 using sf::RenderWindow;
 using sf::Sprite;
+using sf::Text;
 using sf::Texture;
 using sf::VideoMode;
 
@@ -40,6 +38,8 @@ using jlib::u8;
 using jlib::Vector2i;
 using jlib::Vector2uc;
 using namespace jlib;
+
+#include "Convert.hpp"
 
 class Piece;
 
@@ -189,6 +189,21 @@ class Piece
 int main()
 {
 	RenderWindow window(VideoMode(800, 800), "Standard Chess", sf::Style::Titlebar | sf::Style::Close);
+
+	Font font;
+	if (!font.loadFromFile("textures/arial.ttf"))
+		return -1;
+
+	Text mouse_pos_text;
+	mouse_pos_text.setFont(font);
+	mouse_pos_text.setCharacterSize(36);
+	mouse_pos_text.setFillColor(create_from(jlib::Color::Red));
+
+	Text board_pos_text;
+	board_pos_text.setPosition(0.0f, 36.0f);
+	board_pos_text.setFont(font);
+	board_pos_text.setCharacterSize(36);
+	board_pos_text.setFillColor(create_from(jlib::Color::Red));
 
 	// Load textures.
 	array<Texture, 15> textures;
@@ -341,11 +356,23 @@ int main()
 	for (size_t i = 16; i < 48; ++i)
 		board[i] = nullptr;
 
+	Vector2i mouse_pos;
+	Vector2i board_pos;
 	Event event;
 
 	// Main window loop.
 	while (window.isOpen())
 	{
+		copy(sf::Mouse::getPosition(window), mouse_pos);
+		board_pos = (mouse_pos / 100);
+
+		#ifdef _DEBUG
+
+			mouse_pos_text.setString(mouse_pos.toString());
+			board_pos_text.setString(board_pos.toString());
+
+		#endif // #ifdef _DEBUG
+
 		// Handle events.
 		while (window.pollEvent(event))
 		{
@@ -353,6 +380,13 @@ int main()
 			{
 				case Event::Closed:
 					window.close();
+				break;
+
+				case Event::MouseButtonPressed:
+					
+					if (event.key.code == Mouse::Button::Left)
+						board(board_pos.y, board_pos.x) = nullptr;
+
 				break;
 
 				default: break;
@@ -368,6 +402,14 @@ int main()
 			if (board[i] != nullptr)
 				window.draw(board[i]->getSprite());
 		}
+
+		// Draw text.
+		#ifdef _DEBUG
+
+			window.draw(mouse_pos_text);
+			window.draw(board_pos_text);
+
+		#endif
 
 		window.display();
 	}

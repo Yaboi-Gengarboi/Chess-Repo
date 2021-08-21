@@ -1,7 +1,7 @@
 // JLIB
 // JLIB.hpp
 // Created on 2021-08-06 by Justyn Durnford
-// Last modified on 2021-08-20 by Justyn Durnford
+// Last modified on 2021-08-21 by Justyn Durnford
 
 #pragma once
 
@@ -11,10 +11,6 @@
 #ifndef NOMINMAX
 	#define NOMINMAX
 #endif // #ifndef NOMINMAX
-
-#ifdef SFML_SYSTEM_WINDOWS
-	#define _SFML_
-#endif // #ifdef SFML_SYSTEM_WINDOWS
 
 #pragma warning(disable : 4996)
 
@@ -41,15 +37,6 @@
 #include <utility>
 #include <windows.h>
 #include <xinput.h>
-
-#ifdef _SFML_
-
-	#include "SFML/System/Vector2.hpp"
-	#include "SFML/System/Vector3.hpp"
-	#include "SFML/Graphics/Rect.hpp"
-	#include "SFML/Graphics/Color.hpp"
-
-#endif // #ifdef SFML_SYSTEM_WINDOWS
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1208,22 +1195,6 @@ namespace jlib
 		return dot_product(A, B) == 0.0f;
 	}
 
-	#ifdef _SFML_
-
-		template <std_arithmetic T>
-		Vector2<T> copy_from(const sf::Vector2<T>& other)
-		{
-			return Vector2<T>(other.x, other.y);
-		}
-
-		template <std_arithmetic T>
-		sf::Vector2<T> copy_from(const Vector2<T>& other)
-		{
-			return sf::Vector2<T>(other.x, other.y);
-		}
-
-	#endif // #ifdef _SFML_
-
 	typedef jlib::Vector2<bool>   Vector2b;
 	typedef jlib::Vector2<i8>     Vector2c;
 	typedef jlib::Vector2<u8>     Vector2uc;
@@ -1569,22 +1540,6 @@ namespace jlib
 	{
 		return dot_product(A, B) == 0.f;
 	}
-
-	#ifdef _SFML_
-
-		template <std_arithmetic T>
-		Vector3<T> copy_from(const sf::Vector3<T>& other)
-		{
-			return Vector3<T>(other.x, other.y, other.z);
-		}
-
-		template <std_arithmetic T>
-		sf::Vector3<T> copy_from(const Vector3<T>& other)
-		{
-			return sf::Vector3<T>(other.x, other.y, other.z);
-		}
-
-	#endif // #ifdef _SFML_
 
 	typedef jlib::Vector3<bool>   Vector3b;
 	typedef jlib::Vector3<i8>     Vector3c;
@@ -2376,22 +2331,6 @@ namespace jlib
 			return false;
 		return true;
 	}
-
-	#ifdef _SFML_
-
-		template <std_arithmetic T>
-		Rect<T> copy_from(const sf::Rect<T>& other)
-		{
-			return Rect<T>(other.left, other.top, other.width, other.height);
-		}
-
-		template <std_arithmetic T>
-		sf::Rect<T> copy_from(const Rect<T>& other)
-		{
-			return sf::Rect<T>(other.x, other.y, other.width, other.height);
-		}
-
-	#endif // #ifdef _SFML_
 
 	typedef jlib::Rect<i32>       IntRect;
 	typedef jlib::Rect<u32>       UIntRect;
@@ -4967,13 +4906,6 @@ namespace jlib
 
 	// Copies the color bytes into the given destination.
 	void copy_color_data(const Color* src, u8* dst, std::size_t bytes);
-
-	#ifdef _SFML_
-
-		Color copy_from(const sf::Color& other);
-		sf::Color copy_from(const Color& other);
-
-	#endif // #ifdef _SFML_
 }
 
 // Overload of binary operator ==

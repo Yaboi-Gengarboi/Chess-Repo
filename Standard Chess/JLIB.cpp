@@ -1,6 +1,6 @@
 // JLIB.cpp
 // Created on 2021-08-07 by Justyn Durnford
-// Last modified on 2021-08-19 by Justyn Durnford
+// Last modified on 2021-08-21 by Justyn Durnford
 
 #pragma warning(disable : 4996)
 #pragma warning(disable : 4244)
@@ -1346,20 +1346,6 @@ namespace jlib
 		const u8* ptr = reinterpret_cast<const u8*>(src);
 		memcpy(dst, ptr, bytes);
 	}
-
-	#ifdef _SFML_
-
-		Color copy_from(const sf::Color& other)
-		{
-			return Color(other.r, other.g, other.b, other.a);
-		}
-
-		sf::Color copy_from(const Color& other)
-		{
-			return sf::Color(other.r, other.g, other.b, other.a);
-		}
-
-	#endif // #ifdef _SFML_
 }
 
 bool operator == (const Color& A, const Color& B)

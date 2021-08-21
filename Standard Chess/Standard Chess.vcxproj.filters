@@ -26,5 +26,8 @@
     <ClInclude Include="JLIB.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Convert.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
