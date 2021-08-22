@@ -194,6 +194,20 @@ namespace jlib
 
 namespace jlib
 {
+	// Creates a reverse string of the given string.
+	template <std::integral T>
+	std::basic_string<T> reverse_str(const std::basic_string<T>& str)
+	{
+		std::basic_string<T> newstr;
+		const std::size_t len = str.size();
+		newstr.resize(len);
+
+		for (std::size_t i = 0; i < len; ++i)
+			newstr[i] = str[len - 1 - i];
+
+		return newstr;
+	}
+
 	// Utility string class that automatically handles conversions between types and encodings.
 	class String
 	{
@@ -1134,6 +1148,16 @@ namespace jlib
 			return '<' + std::to_string(x) + ", " + std::to_string(y) + '>';
 		}
 	};
+
+	// Converts the given Vector2.
+	template <std_arithmetic T, std_arithmetic U>
+	Vector2<T> convert(const Vector2<U>& A)
+	{
+		T x = static_cast<T>(A.x);
+		T y = static_cast<T>(A.y);
+
+		return Vector2<T>(x, y);
+	}
 
 	// Returns the distance between the 2 given Vector2s.
 	template <std_arithmetic T>

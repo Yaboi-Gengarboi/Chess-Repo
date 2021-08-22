@@ -20,6 +20,10 @@ using std::endl;
 #include <string>
 using std::string;
 
+#include <utility>
+using std::move;
+using std::swap;
+
 #include <vector>
 using std::vector;
 
@@ -106,7 +110,7 @@ class Piece
 
 	u8 _id;
 	string _name;
-	Vector2uc _boardPos;
+	Vector2i _boardPos;
 	Sprite _spr;
 	vector<u8> _validMoves;
 
@@ -117,7 +121,7 @@ class Piece
 		_id = 0;
 	}
 
-	Piece(u8 id, const string& name, const Vector2uc& boardPos, Texture& texture)
+	Piece(u8 id, const string& name, const Vector2i& boardPos, Texture& texture)
 	{
 		_id = id;
 		_name = name;
@@ -145,12 +149,12 @@ class Piece
 		_name = name;
 	}
 
-	const Vector2uc& getBoardPosition() const
+	const Vector2i& getBoardPosition() const
 	{
 		return _boardPos;
 	}
 
-	void setBoardPosition(const Vector2uc& boardPos)
+	void setBoardPosition(const Vector2i& boardPos)
 	{
 		_boardPos = boardPos;
 		_validMoves.clear();
@@ -186,6 +190,14 @@ class Piece
 	}
 };
 
+// Flags:
+// - flags[0]: Is it Whites's turn?
+// - flags[1]: Is White in check?
+// - flags[2]: Is Black in check?
+// - flags[3]: Is White moving a piece?
+// - flags[4]: Is Black moving a piece?
+bitset<5> flags;
+
 int main()
 {
 	RenderWindow window(VideoMode(800, 800), "Standard Chess", sf::Style::Titlebar | sf::Style::Close);
@@ -194,16 +206,40 @@ int main()
 	if (!font.loadFromFile("textures/arial.ttf"))
 		return -1;
 
+	string mouse_pos_str;
 	Text mouse_pos_text;
 	mouse_pos_text.setFont(font);
 	mouse_pos_text.setCharacterSize(36);
-	mouse_pos_text.setFillColor(create_from(jlib::Color::Red));
+	mouse_pos_text.setFillColor(create_from(jlib::Color::Yellow));
+	mouse_pos_text.setOutlineColor(create_from(jlib::Color::Black));
+	mouse_pos_text.setOutlineThickness(3.0f);
 
+	string board_pos_str;
 	Text board_pos_text;
 	board_pos_text.setPosition(0.0f, 36.0f);
 	board_pos_text.setFont(font);
 	board_pos_text.setCharacterSize(36);
-	board_pos_text.setFillColor(create_from(jlib::Color::Red));
+	board_pos_text.setFillColor(create_from(jlib::Color::Yellow));
+	board_pos_text.setOutlineColor(create_from(jlib::Color::Black));
+	board_pos_text.setOutlineThickness(3.0f);
+
+	string flags_str;
+	Text flags_text;
+	flags_text.setPosition(0.0f, 72.0f);
+	flags_text.setFont(font);
+	flags_text.setCharacterSize(36);
+	flags_text.setFillColor(create_from(jlib::Color::Yellow));
+	flags_text.setOutlineColor(create_from(jlib::Color::Black));
+	flags_text.setOutlineThickness(3.0f);
+
+	string moving_piece_str;
+	Text moving_piece_text;
+	moving_piece_text.setPosition(0.0f, 108.0f);
+	moving_piece_text.setFont(font);
+	moving_piece_text.setCharacterSize(36);
+	moving_piece_text.setFillColor(create_from(jlib::Color::Yellow));
+	moving_piece_text.setOutlineColor(create_from(jlib::Color::Black));
+	moving_piece_text.setOutlineThickness(3.0f);
 
 	// Load textures.
 	array<Texture, 15> textures;
@@ -215,39 +251,39 @@ int main()
 	boardSprite.setTexture(textures[0]);
 
 	// Create pieces.
-	Piece whitePawnA(Piece::WhitePawn, "White Pawn", Vector2uc(0, 6), textures[1]);
-	Piece whitePawnB(Piece::WhitePawn, "White Pawn", Vector2uc(1, 6), textures[1]);
-	Piece whitePawnC(Piece::WhitePawn, "White Pawn", Vector2uc(2, 6), textures[1]);
-	Piece whitePawnD(Piece::WhitePawn, "White Pawn", Vector2uc(3, 6), textures[1]);
-	Piece whitePawnE(Piece::WhitePawn, "White Pawn", Vector2uc(4, 6), textures[1]);
-	Piece whitePawnF(Piece::WhitePawn, "White Pawn", Vector2uc(5, 6), textures[1]);
-	Piece whitePawnG(Piece::WhitePawn, "White Pawn", Vector2uc(6, 6), textures[1]);
-	Piece whitePawnH(Piece::WhitePawn, "White Pawn", Vector2uc(7, 6), textures[1]);
-	Piece whiteBishopC(Piece::WhiteBishop, "White Bishop", Vector2uc(2, 7), textures[2]);
-	Piece whiteBishopF(Piece::WhiteBishop, "White Bishop", Vector2uc(5, 7), textures[2]);
-	Piece whiteKnightB(Piece::WhiteKnight, "White Knight", Vector2uc(1, 7), textures[3]);
-	Piece whiteKnightG(Piece::WhiteKnight, "White Knight", Vector2uc(6, 7), textures[3]);
-	Piece whiteRookA(Piece::WhiteRook, "White Rook", Vector2uc(0, 7), textures[4]);
-	Piece whiteRookH(Piece::WhiteRook, "White Rook", Vector2uc(7, 7), textures[4]);
-	Piece whiteQueen(Piece::WhiteQueen, "White Queen", Vector2uc(3, 7), textures[5]);
-	Piece whiteKing(Piece::WhiteKing, "White King", Vector2uc(4, 7), textures[6]);
+	Piece whitePawnA(Piece::WhitePawn, "White Pawn", Vector2i(0, 6), textures[1]);
+	Piece whitePawnB(Piece::WhitePawn, "White Pawn", Vector2i(1, 6), textures[1]);
+	Piece whitePawnC(Piece::WhitePawn, "White Pawn", Vector2i(2, 6), textures[1]);
+	Piece whitePawnD(Piece::WhitePawn, "White Pawn", Vector2i(3, 6), textures[1]);
+	Piece whitePawnE(Piece::WhitePawn, "White Pawn", Vector2i(4, 6), textures[1]);
+	Piece whitePawnF(Piece::WhitePawn, "White Pawn", Vector2i(5, 6), textures[1]);
+	Piece whitePawnG(Piece::WhitePawn, "White Pawn", Vector2i(6, 6), textures[1]);
+	Piece whitePawnH(Piece::WhitePawn, "White Pawn", Vector2i(7, 6), textures[1]);
+	Piece whiteBishopC(Piece::WhiteBishop, "White Bishop", Vector2i(2, 7), textures[2]);
+	Piece whiteBishopF(Piece::WhiteBishop, "White Bishop", Vector2i(5, 7), textures[2]);
+	Piece whiteKnightB(Piece::WhiteKnight, "White Knight", Vector2i(1, 7), textures[3]);
+	Piece whiteKnightG(Piece::WhiteKnight, "White Knight", Vector2i(6, 7), textures[3]);
+	Piece whiteRookA(Piece::WhiteRook, "White Rook", Vector2i(0, 7), textures[4]);
+	Piece whiteRookH(Piece::WhiteRook, "White Rook", Vector2i(7, 7), textures[4]);
+	Piece whiteQueen(Piece::WhiteQueen, "White Queen", Vector2i(3, 7), textures[5]);
+	Piece whiteKing(Piece::WhiteKing, "White King", Vector2i(4, 7), textures[6]);
 
-	Piece blackPawnA(Piece::BlackPawn, "Black Pawn", Vector2uc(0, 1), textures[7]);
-	Piece blackPawnB(Piece::BlackPawn, "Black Pawn", Vector2uc(1, 1), textures[7]);
-	Piece blackPawnC(Piece::BlackPawn, "Black Pawn", Vector2uc(2, 1), textures[7]);
-	Piece blackPawnD(Piece::BlackPawn, "Black Pawn", Vector2uc(3, 1), textures[7]);
-	Piece blackPawnE(Piece::BlackPawn, "Black Pawn", Vector2uc(4, 1), textures[7]);
-	Piece blackPawnF(Piece::BlackPawn, "Black Pawn", Vector2uc(5, 1), textures[7]);
-	Piece blackPawnG(Piece::BlackPawn, "Black Pawn", Vector2uc(6, 1), textures[7]);
-	Piece blackPawnH(Piece::BlackPawn, "Black Pawn", Vector2uc(7, 1), textures[7]);
-	Piece blackBishopC(Piece::BlackBishop, "Black Bishop", Vector2uc(2, 1), textures[8]);
-	Piece blackBishopF(Piece::BlackBishop, "Black Bishop", Vector2uc(5, 1), textures[8]);
-	Piece blackKnightB(Piece::BlackKnight, "Black Knight", Vector2uc(1, 1), textures[9]);
-	Piece blackKnightG(Piece::BlackKnight, "Black Knight", Vector2uc(6, 1), textures[9]);
-	Piece blackRookA(Piece::BlackRook, "Black Rook", Vector2uc(0, 1), textures[10]);
-	Piece blackRookH(Piece::BlackRook, "Black Rook", Vector2uc(7, 1), textures[10]);
-	Piece blackQueen(Piece::BlackQueen, "Black Queen", Vector2uc(3, 1), textures[11]);
-	Piece blackKing(Piece::BlackKing, "Black King", Vector2uc(4, 1), textures[12]);
+	Piece blackPawnA(Piece::BlackPawn, "Black Pawn", Vector2i(0, 1), textures[7]);
+	Piece blackPawnB(Piece::BlackPawn, "Black Pawn", Vector2i(1, 1), textures[7]);
+	Piece blackPawnC(Piece::BlackPawn, "Black Pawn", Vector2i(2, 1), textures[7]);
+	Piece blackPawnD(Piece::BlackPawn, "Black Pawn", Vector2i(3, 1), textures[7]);
+	Piece blackPawnE(Piece::BlackPawn, "Black Pawn", Vector2i(4, 1), textures[7]);
+	Piece blackPawnF(Piece::BlackPawn, "Black Pawn", Vector2i(5, 1), textures[7]);
+	Piece blackPawnG(Piece::BlackPawn, "Black Pawn", Vector2i(6, 1), textures[7]);
+	Piece blackPawnH(Piece::BlackPawn, "Black Pawn", Vector2i(7, 1), textures[7]);
+	Piece blackBishopC(Piece::BlackBishop, "Black Bishop", Vector2i(2, 1), textures[8]);
+	Piece blackBishopF(Piece::BlackBishop, "Black Bishop", Vector2i(5, 1), textures[8]);
+	Piece blackKnightB(Piece::BlackKnight, "Black Knight", Vector2i(1, 1), textures[9]);
+	Piece blackKnightG(Piece::BlackKnight, "Black Knight", Vector2i(6, 1), textures[9]);
+	Piece blackRookA(Piece::BlackRook, "Black Rook", Vector2i(0, 1), textures[10]);
+	Piece blackRookH(Piece::BlackRook, "Black Rook", Vector2i(7, 1), textures[10]);
+	Piece blackQueen(Piece::BlackQueen, "Black Queen", Vector2i(3, 1), textures[11]);
+	Piece blackKing(Piece::BlackKing, "Black King", Vector2i(4, 1), textures[12]);
 
 	// Scale Piece sprites.
 	whitePawnA.getSprite().setScale(0.78125f, 0.78125f);
@@ -356,6 +392,9 @@ int main()
 	for (size_t i = 16; i < 48; ++i)
 		board[i] = nullptr;
 
+	flags[0] = true;
+
+	Piece* moving_piece = nullptr;
 	Vector2i mouse_pos;
 	Vector2i board_pos;
 	Event event;
@@ -366,10 +405,25 @@ int main()
 		copy(sf::Mouse::getPosition(window), mouse_pos);
 		board_pos = (mouse_pos / 100);
 
+		if (moving_piece != nullptr)
+			moving_piece->getSprite().setPosition(mouse_pos.x - 50, mouse_pos.y - 50);
+
 		#ifdef _DEBUG
 
-			mouse_pos_text.setString(mouse_pos.toString());
-			board_pos_text.setString(board_pos.toString());
+			mouse_pos_str = mouse_pos.toString();
+			board_pos_str = board_pos.toString();
+			flags_str = reverse_str(flags.to_string());
+			
+			if (moving_piece != nullptr)
+				moving_piece_str = moving_piece->getName() + ": " + moving_piece->getBoardPosition().toString();
+			else
+				moving_piece_str = "";
+
+			moving_piece_text.setString(moving_piece_str);
+
+			mouse_pos_text.setString(mouse_pos_str);
+			board_pos_text.setString(board_pos_str);
+			flags_text.setString(flags_str);
 
 		#endif // #ifdef _DEBUG
 
@@ -385,7 +439,29 @@ int main()
 				case Event::MouseButtonPressed:
 					
 					if (event.key.code == Mouse::Button::Left)
-						board(board_pos.y, board_pos.x) = nullptr;
+					{
+						if (!flags[3])
+						{
+							if (board(board_pos.y, board_pos.x) != nullptr)
+							{
+								swap(moving_piece, board(board_pos.y, board_pos.x));
+								flags[3] = true;
+							}
+						}
+						else if (flags[3])
+						{
+							if (moving_piece != nullptr)
+							{
+								if (board(static_cast<Vector2<size_t>>(board_pos)) == nullptr)
+								{
+									moving_piece->setBoardPosition(board_pos);
+									swap(moving_piece, board(static_cast<Vector2<size_t>>(board_pos)));
+									flags[3] = false;
+								}
+							}
+						}
+						
+					}
 
 				break;
 
@@ -403,11 +479,16 @@ int main()
 				window.draw(board[i]->getSprite());
 		}
 
+		if (flags[3] || flags[4])
+			window.draw(moving_piece->getSprite());
+
 		// Draw text.
 		#ifdef _DEBUG
 
 			window.draw(mouse_pos_text);
 			window.draw(board_pos_text);
+			window.draw(flags_text);
+			window.draw(moving_piece_text);
 
 		#endif
 
