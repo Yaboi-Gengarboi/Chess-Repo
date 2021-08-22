@@ -159,6 +159,7 @@ class Piece
 		_boardPos = boardPos;
 		_validMoves.clear();
 
+		// Update valid moves.
 		switch (_id)
 		{
 			case WhitePawn:
@@ -187,6 +188,11 @@ class Piece
 	const vector<u8>& getValidMoves() const
 	{
 		return _validMoves;
+	}
+
+	bool canMoveTo(const Vector2i& boardPos) const
+	{
+		return true;
 	}
 };
 
@@ -454,9 +460,13 @@ int main()
 							{
 								if (board(static_cast<Vector2<size_t>>(board_pos)) == nullptr)
 								{
-									moving_piece->setBoardPosition(board_pos);
-									swap(moving_piece, board(static_cast<Vector2<size_t>>(board_pos)));
-									flags[3] = false;
+									if (moving_piece->canMoveTo(board_pos))
+									{
+										moving_piece->setBoardPosition(board_pos);
+										moving_piece->getSprite().setPosition(board_pos.x * 100, board_pos.y * 100);
+										swap(moving_piece, board(static_cast<Vector2<size_t>>(board_pos)));
+										flags[3] = false;
+									}
 								}
 							}
 						}
