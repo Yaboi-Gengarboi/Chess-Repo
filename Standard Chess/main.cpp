@@ -200,9 +200,8 @@ class Piece
 // - flags[0]: Is it Whites's turn?
 // - flags[1]: Is White in check?
 // - flags[2]: Is Black in check?
-// - flags[3]: Is White moving a piece?
-// - flags[4]: Is Black moving a piece?
-bitset<5> flags;
+// - flags[3]: Is player moving a piece?
+bitset<4> flags;
 
 int main()
 {
@@ -448,29 +447,37 @@ int main()
 					{
 						if (!flags[3])
 						{
-							if (board(board_pos.y, board_pos.x) != nullptr)
+							if (flags[0])
 							{
-								swap(moving_piece, board(board_pos.y, board_pos.x));
-								flags[3] = true;
+								if (board(board_pos.y, board_pos.x) != nullptr && board(board_pos.y, board_pos.x)->getID() < 7)
+								{
+									swap(moving_piece, board(board_pos.y, board_pos.x));
+									flags[3] = true;
+								}
+							}
+							else
+							{
+								if (board(board_pos.y, board_pos.x) != nullptr && board(board_pos.y, board_pos.x)->getID() > 6)
+								{
+									swap(moving_piece, board(board_pos.y, board_pos.x));
+									flags[3] = true;
+								}
 							}
 						}
 						else if (flags[3])
 						{
-							if (moving_piece != nullptr)
+							if (board(static_cast<Vector2<size_t>>(board_pos)) == nullptr)
 							{
-								if (board(static_cast<Vector2<size_t>>(board_pos)) == nullptr)
+								if (moving_piece->canMoveTo(board_pos))
 								{
-									if (moving_piece->canMoveTo(board_pos))
-									{
-										moving_piece->setBoardPosition(board_pos);
-										moving_piece->getSprite().setPosition(board_pos.x * 100, board_pos.y * 100);
-										swap(moving_piece, board(static_cast<Vector2<size_t>>(board_pos)));
-										flags[3] = false;
-									}
+									moving_piece->setBoardPosition(board_pos);
+									moving_piece->getSprite().setPosition(board_pos.x * 100, board_pos.y * 100);
+									swap(moving_piece, board(static_cast<Vector2<size_t>>(board_pos)));
+									flags.flip(0);
+									flags[3] = false;
 								}
 							}
 						}
-						
 					}
 
 				break;
@@ -489,7 +496,7 @@ int main()
 				window.draw(board[i]->getSprite());
 		}
 
-		if (flags[3] || flags[4])
+		if (flags[3])
 			window.draw(moving_piece->getSprite());
 
 		// Draw text.
