@@ -157,10 +157,11 @@
   <ItemGroup>
     <ClCompile Include="JLIB.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Piece.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Convert.hpp" />
     <ClInclude Include="JLIB.hpp" />
+    <ClInclude Include="Piece.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

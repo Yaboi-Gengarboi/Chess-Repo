@@ -1,7 +1,7 @@
 // JLIB
 // JLIB.hpp
 // Created on 2021-08-06 by Justyn Durnford
-// Last modified on 2021-08-21 by Justyn Durnford
+// Last modified on 2021-09-05 by Justyn Durnford
 
 #pragma once
 
@@ -18,6 +18,7 @@
 #pragma comment(lib, "Xinput9_1_0.lib")
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// STANDARD LIBRARY INDLUCES                                                                     //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <algorithm>
@@ -39,6 +40,16 @@
 #include <xinput.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// SFML LIBRARY INDLUCES                                                                         //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include "SFML/System/Vector2.hpp"
+#include "SFML/System/Vector3.hpp"
+#include "SFML/Graphics/Color.hpp"
+#include "SFML/Graphics/Rect.hpp"
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// INTEGER TYPEDEFS                                                                              //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -112,6 +123,7 @@ namespace jlib
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// STD_ARITHMETIC TEMPLATE CONCEPT                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -123,6 +135,7 @@ namespace jlib
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// IMPORTANT CONSTANTS                                                                           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -139,6 +152,7 @@ namespace jlib
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// CLAMP TEMPLATE FUNCTIONS                                                                      //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -184,21 +198,31 @@ namespace jlib
 		return value;
 	}
 
-	std::string wstr2str(const std::wstring& wstr);
+	// Returns true if the given value is within, but not on, the given bounds.
+	template <std_arithmetic T>
+	bool is_within_exclusive(T value, T lower, T upper)
+	{
+		return (value > lower) && (value < upper);
+	}
 
-	std::wstring str2wstr(const std::string& str);
+	// Returns true if the given value is within or on the given bounds.
+	template <std_arithmetic T>
+	bool is_within_inclusive(T value, T lower, T upper)
+	{
+		return (value >= lower) && (value <= upper);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// STRING TEMPLATE FUNCTIONS                                                                     //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
 {
-	// Creates a reverse string of the given string.
-	template <std::integral T>
-	std::basic_string<T> reverse_str(const std::basic_string<T>& str)
+	template <std::integral charT>
+	std::basic_string<charT> reverse_str(const std::basic_string<charT>& str)
 	{
-		std::basic_string<T> newstr;
+		std::basic_string<charT> newstr;
 		const std::size_t len = str.size();
 		newstr.resize(len);
 
@@ -208,252 +232,1050 @@ namespace jlib
 		return newstr;
 	}
 
-	// Utility string class that automatically handles conversions between types and encodings.
-	class String
+	template <std::integral charT>
+	std::basic_string<charT> substring(const std::basic_string<charT>& str, std::size_t pos_begin, std::size_t pos_end)
 	{
-		public:
+		std::basic_string<charT> newstr;
+		const std::size_t len = str.size();
 
-		using value_type = wchar_t;
-		using traits_type = std::wstring::traits_type;
-		using allocator_type = std::wstring::allocator_type;
-		using size_type = std::size_t;
-		using difference_type = std::ptrdiff_t;
-		using reference = wchar_t&;
-		using const_reference = const wchar_t&;
-		using pointer = wchar_t*;
-		using const_pointer = const wchar_t*;
-		using iterator = std::wstring::iterator;
-		using const_iterator = std::wstring::const_iterator;
-		using reverse_iterator = std::wstring::reverse_iterator;
-		using const_reverse_iterator = std::wstring::const_reverse_iterator;
+		if (pos_begin >= len)
+			return newstr;
+		if (pos_begin >= pos_end)
+			return newstr;
 
-		static const size_type npos = -1;
+		if (pos_end >= len)
+		{
+			newstr.resize(len - pos_begin);
+			for (std::size_t i = pos_begin; i < len; ++i)
+				newstr[i] = str[i];
+		}
+		else
+		{
+			newstr.resize(pos_end - pos_begin);
+			for (std::size_t i = pos_begin; i < pos_end; ++i)
+				newstr[i] = str[i];
+		}
 
-		private:
+		return newstr;
+	}
+}
 
-		std::wstring _data;
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// PTR TEMPLATE CLASS                                                                            //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace jlib
+{
+	// Utility template wrapper class for pointers.
+	// This class is NOT intended to be used for memory
+	// allocation, it is simply for pointing to objects.
+	template <typename T> class Ptr
+	{
+		T* _ptr;
 
 		public:
 
 		// Default constructor.
-		String() = default;
+		Ptr()
+		{
+			_ptr = nullptr;
+		}
 
-		// Size constructor.
-		String(size_type len);
+		// Value constructor.
+		Ptr(T* ptr)
+		{
+			_ptr = ptr;
+		}
 
-		// Constructs the String from a char.
-		String(char c, size_type count = 1);
+		// Copy constructor.
+		Ptr(Ptr& other) = default;
 
-		// Constructs the String from a wchar_t.
-		String(wchar_t c, size_type count = 1);
+		// Move constructor.
+		Ptr(Ptr&& other) noexcept
+		{
+			_ptr = other._ptr;
+			other._ptr = nullptr;
+		}
 
-		// Constructs the String from a null-terminated C-style string.
-		String(const char* cstr);
+		// Value assignment operator.
+		Ptr& operator = (T* ptr)
+		{
+			_ptr = ptr;
+			return *this;
+		}
 
-		// Constructs the String from a null-terminated C-style wide string.
-		String(const wchar_t* wcstr);
+		// Copy assignment operator.
+		Ptr& operator = (Ptr& other) = default;
 
-		// Constructs the String from a std::string.
-		String(const std::string& str);
+		// Move assignment operator.
+		Ptr& operator = (Ptr&& other) noexcept
+		{
+			_ptr = other._ptr;
+			other._ptr = nullptr;
+			return *this;
+		}
 
-		// Constructs the String from a std::wstring.
-		String(const std::wstring& wstr);
+		// Destructor.
+		~Ptr() = default;
 
-		// Constructs the String from a null-terminated C-style string.
-		String& operator = (const char* cstr);
+		// Resets the pointer to nullptr.
+		void reset()
+		{
+			_ptr = nullptr;
+		}
 
-		// Constructs the String from a null-terminated C-style wide string.
-		String& operator = (const wchar_t* wcstr);
+		// Returns the underlying raw-pointer.
+		T* get()
+		{
+			return _ptr;
+		}
 
-		// Constructs the String from a std::string.
-		String& operator = (const std::string& str);
+		// Returns the underlying raw-pointer.
+		const T* get() const
+		{
+			return _ptr;
+		}
 
-		// Constructs the String from a std::wstring.
-		String& operator = (const std::wstring& wstr);
+		// Dereference operator.
+		T& operator * ()
+		{
+			return *_ptr;
+		}
 
-		// Returns the character at the given index.
-		// Throws an exception if given an invalid index.
-		reference at(size_type index);
+		// Dereference operator.
+		const T& operator * () const
+		{
+			return *_ptr;
+		}
 
-		// Returns the character at the given index.
-		// Throws an exception if given an invalid index.
-		const_reference at(size_type index) const;
+		// Structure pointer dereference operator.
+		T* operator -> ()
+		{
+			return _ptr;
+		}
 
-		// Returns the first character of the String.
-		reference front();
+		// Conversion operator to implicitly convert the pointer to its raw pointer type (T*).
+		operator T* () const
+		{
+			return static_cast<T*>(_ptr);
+		}
 
-		// Returns the first character of the String.
-		const_reference front() const;
+		// Returns true if the Pointer != nullptr.
+		operator bool() const
+		{
+			return _ptr != nullptr;
+		}
 
-		// Returns the last character of the String.
-		reference back();
+		// Overload of unary operator ++
+		Ptr& operator ++ ()
+		{
+			++_ptr;
+			return *this;
+		}
 
-		// Returns the last character of the String.
-		const_reference back() const;
+		// Overload of unary operator ++
+		Ptr operator ++ (int)
+		{
+			Ptr p(*this);
+			++_ptr;
+			return p;
+		}
 
-		// Returns the size of the String.
-		constexpr size_type size() const noexcept;
+		// Overload of unary operator --
+		Ptr& operator -- ()
+		{
+			--_ptr;
+			return *this;
+		}
 
-		// Returns the capacity of the String.
-		constexpr size_type capacity() const noexcept;
+		// Overload of unary operator --
+		Ptr operator -- (int)
+		{
+			Ptr p(*this);
+			--_ptr;
+			return p;
+		}
 
-		// Returns true if the String is empty.
-		constexpr bool isEmpty() const noexcept;
+		// Overload of binary operator +
+		Ptr operator + (std::ptrdiff_t offset)
+		{
+			return Ptr(_ptr + offset);
+		}
 
-		// Returns a pointer to the first character of the String.
-		constexpr pointer data() noexcept;
+		// Overload of binary operator -
+		Ptr operator - (std::ptrdiff_t offset)
+		{
+			return Ptr(_ptr - offset);
+		}
 
-		// Returns a pointer to the first character of the String.
-		constexpr const_pointer data() const noexcept;
+		// Overload of binary operator -
+		std::ptrdiff_t operator - (const Ptr& other)
+		{
+			return _ptr - other._ptr;
+		}
 
-		// Returns an iterator to the begining of the String.
-		constexpr iterator begin() noexcept;
+		// Overload of binary operator -
+		std::ptrdiff_t operator - (const T* ptr)
+		{
+			return _ptr - ptr;
+		}
 
-		// Returns an iterator to the begining of the String.
-		constexpr const_iterator begin() const noexcept;
+		// Overload of binary operator +=
+		Ptr& operator += (std::ptrdiff_t offset)
+		{
+			_ptr += offset;
+			return *this;
+		}
 
-		// Returns an iterator to the begining of the String.
-		constexpr const_iterator cbegin() const noexcept;
+		// Overload of binary operator -=
+		Ptr& operator -= (std::ptrdiff_t offset)
+		{
+			_ptr -= offset;
+			return *this;
+		}
 
-		// Returns an iterator to the end of the String.
-		constexpr iterator end() noexcept;
+		// Overload of binary operator ==
+		bool operator == (const Ptr& other)
+		{
+			return _ptr == other._ptr;
+		}
 
-		// Returns an iterator to the end of the String.
-		constexpr const_iterator end() const noexcept;
+		// Overload of binary operator ==
+		bool operator == (const T* ptr)
+		{
+			return _ptr == ptr;
+		}
 
-		// Returns an iterator to the end of the String.
-		constexpr const_iterator cend() const noexcept;
+		// Overload of binary operator ==
+		bool operator == (std::nullptr_t)
+		{
+			return _ptr == nullptr;
+		}
 
-		// Returns a reverse iterator to the begining of the String.
-		constexpr reverse_iterator rbegin() noexcept;
+		// Overload of binary operator !=
+		bool operator != (const Ptr& other)
+		{
+			return _ptr != other._ptr;
+		}
 
-		// Returns a reverse iterator to the begining of the String.
-		constexpr const_reverse_iterator rbegin() const noexcept;
+		// Overload of binary operator !=
+		bool operator != (const T* ptr)
+		{
+			return _ptr != ptr;
+		}
 
-		// Returns a reverse iterator to the begining of the String.
-		constexpr const_reverse_iterator crbegin() const noexcept;
+		// Overload of binary operator !=
+		bool operator != (std::nullptr_t)
+		{
+			return _ptr != nullptr;
+		}
 
-		// Returns a reverse iterator to the end of the String.
-		constexpr reverse_iterator rend() noexcept;
+		// Overload of binary operator <
+		bool operator < (const Ptr& other)
+		{
+			return _ptr < other._ptr;
+		}
 
-		// Returns a reverse iterator to the end of the String.
-		constexpr const_reverse_iterator rend() const noexcept;
+		// Overload of binary operator <
+		bool operator < (const T* ptr)
+		{
+			return _ptr < ptr;
+		}
 
-		// Returns a reverse iterator to the end of the String.
-		constexpr const_reverse_iterator crend() const noexcept;
+		// Overload of binary operator <=
+		bool operator <= (const Ptr& other)
+		{
+			return _ptr <= other._ptr;
+		}
 
-		// Finds a sequence of one or more characters in the string.
-		// Returns -1 if the sequence cannot be found.
-		size_type find(const String& str, size_type start = 0) const noexcept;
+		// Overload of binary operator <=
+		bool operator <= (const T* ptr)
+		{
+			return _ptr <= ptr;
+		}
 
-		// Reduces the size of the String to 0.
-		constexpr void clear() noexcept;
+		// Overload of binary operator >
+		bool operator > (const Ptr& other)
+		{
+			return _ptr > other._ptr;
+		}
 
-		// Requests the removal of unused capacity.
-		void shrink_to_fit();
+		// Overload of binary operator >
+		bool operator > (const T* ptr)
+		{
+			return _ptr > ptr;
+		}
 
-		// Appends characters to the String.
-		void append(char c, size_type count);
+		// Overload of binary operator >=
+		bool operator >= (const Ptr& other)
+		{
+			return _ptr >= other._ptr;
+		}
 
-		// Appends characters to the String.
-		void append(wchar_t c, size_type count);
+		// Overload of binary operator >=
+		bool operator >= (const T* ptr)
+		{
+			return _ptr >= ptr;
+		}
 
-		// Appends the given String to this String.
-		void append(const String& str);
+		// Overload of binary operator <=>
+		std::strong_ordering operator <=> (const Ptr& other)
+		{
+			return _ptr <=> other._ptr;
+		}
 
-		// Resizes the String.
-		void resize(size_type len);
-
-		// Resizes the String.
-		void resize(size_type len, char c);
-
-		// Resizes the String.
-		void resize(size_type len, wchar_t c);
-
-		// Inserts the sequence of character into the String.
-		void insert(const String& str, size_type pos);
-
-		// Erases characters from the String.
-		void erase(size_type pos, size_type count = 1);
-
-		// Erases characters from the String.
-		void erase(const_iterator first, const_iterator last);
-
-		// Replace a portion of the String with another String.
-		void replace(size_type pos, size_type len, const String& str);
-
-		// Replace all occurrences of a substring of the String with another String.
-		void replace(const String& oldstr, const String& newstr);
-
-		// Returns a part of the String.
-		String substr(size_type pos, size_type len = npos) const;
-
-		// Returns a part of the String.
-		String substr(const_iterator first, const_iterator last) const;
-
-		// Compares the given Strimg to this String.
-		constexpr int compareWith(const String& other) const;
-
-		// Converts the String to a std::string.
-		std::string toString() const;
-
-		// Converts the String to a std::wstring.
-		std::wstring toWideString() const;
-
-		// Returns the character at the given index.
-		reference operator [] (size_type index);
-
-		// Returns the character at the given index.
-		const_reference operator [] (size_type index) const;
-
-		// Appends the given character to the String.
-		String& operator += (char c);
-
-		// Appends the given character to the String.
-		String& operator += (wchar_t c);
-
-		// Appends the given String to this String.
-		String& operator += (const String& str);
-
-		// Implicit conversion operator to std::string.
-		operator std::string() const;
-
-		// Implicit conversion operator to std::wstring.
-		operator std::wstring() const;
+		// Overload of binary operator <=>
+		std::strong_ordering operator <=> (const T* ptr)
+		{
+			return _ptr <=> ptr;
+		}
 	};
 }
 
-// Overload of binary operator +
-jlib::String operator + (const jlib::String& A, const jlib::String& B);
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// FIXEDARRAY TEMPLATE CLASS                                                                     //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace jlib
+{
+	// 
+	template <std::semiregular T, std::size_t N> class FixedArray
+	{
+		public:
+
+		using value_type = T;
+		using size_type = std::size_t;
+		using difference_type = std::ptrdiff_t;
+		using pointer = value_type*;
+		using const_pointer = const value_type*;
+		using reference = value_type&;
+		using const_reference = const value_type&;
+		using iterator = value_type*;
+		using const_iterator = const value_type*;
+		using reverse_iterator = std::reverse_iterator<iterator>;
+		using const_reverse_iterator = const std::reverse_iterator<iterator>;
+
+		private:
+
+		pointer _data;
+
+		void allocate()
+		{
+			if (N != 0)
+			{
+				try
+				{
+					_data = new value_type[N];
+				}
+				catch (...)
+				{
+					_data = nullptr;
+					throw;
+				}
+			}
+			else
+				_data = nullptr;
+		}
+
+		public:
+
+		// Default constructor.
+		FixedArray()
+		{
+			allocate();
+		}
+
+		// Value constructor.
+		FixedArray(const_reference value)
+		{
+			allocate();
+			for (size_type i = 0; i < size; ++i)
+				_data[i] = value;
+		}
+
+		// std::initializer_list constructor.
+		FixedArray(std::initializer_list<T> elems)
+		{
+			allocate();
+			std::copy(elems.begin(), elems.begin() + N, _data);
+		}
+
+		// Copy constructor.
+		FixedArray(const FixedArray& other)
+		{
+			allocate();
+			std::copy(other._data, other._data + N, _data);
+		}
+
+		// Different-type Copy constructor.
+		template <std::semiregular U>
+		explicit FixedArray(const FixedArray<U, N>& other)
+		{
+			allocate();
+			for (size_type i = 0; i < N; ++i)
+				_data[i] = static_cast<T>(other._data[i]);
+		}
+
+		// Move constructor.
+		FixedArray(FixedArray&& other) noexcept
+		{
+			_data = nullptr;
+			std::swap(_data, other._data);
+		}
+
+		// std::initializer_list assignment operator.
+		FixedArray& operator = (std::initializer_list<T> elems)
+		{
+			std::copy(elems.begin(), elems.begin() + N, _data);
+			return *this;
+		}
+
+		// Copy assignment operator.
+		FixedArray& operator = (const FixedArray& other)
+		{
+			std::copy(other._data, other._data + N, _data);
+			return *this;
+		}
+
+		// Move assignment operator.
+		FixedArray& operator = (FixedArray&& other) noexcept
+		{
+			delete[] _data;
+			_data = nullptr;
+			std::swap(_data, other._data);
+			return *this;
+		}
+
+		// Destructor.
+		~FixedArray() noexcept
+		{
+			delete[] _data;
+		}
+
+		// Returns the size of the FixedArray.
+		constexpr size_type size() const noexcept
+		{
+			return N;
+		}
+
+		// Returns true if the FixedArray has a size of 0.
+		constexpr bool isEmpty() const noexcept
+		{
+			return N == 0;
+		}
+
+		// Returns the first element of the FixedArray.
+		// Throws a std::out_of_range exception if the FixedArray is empty.
+		reference first()
+		{
+			if (N == 0)
+				throw std::out_of_range("ERROR: The FixedArray is empty.");
+			return _data[0];
+		}
+
+		// Returns the first element of the FixedArray.
+		// Throws a std::out_of_range exception if the FixedArray is empty.
+		const_reference first() const
+		{
+			if (N == 0)
+				throw std::out_of_range("ERROR: The FixedArray is empty.");
+			return _data[0];
+		}
+
+		// Returns the last element of the FixedArray.
+		// Throws a std::out_of_range exception if the FixedArray is empty.
+		reference last()
+		{
+			if (N == 0)
+				throw std::out_of_range("ERROR: The FixedArray is empty.");
+			return _data[N - 1];
+		}
+
+		// Returns the last element of the FixedArray.
+		// Throws a std::out_of_range exception if the FixedArray is empty.
+		const_reference last() const
+		{
+			if (N == 0)
+				throw std::out_of_range("ERROR: The FixedArray is empty.");
+			return _data[N - 1];
+		}
+
+		// Returns the pointer of the FixedArray.
+		pointer data() noexcept
+		{
+			return _data;
+		}
+
+		// Returns the pointer of the FixedArray.
+		const_pointer data() const noexcept
+		{
+			return _data;
+		}
+
+		// Returns an iterator pointing to the first element of the FixedArray.
+		// Returns nullptr if the FixedArray is empty.
+		iterator begin() noexcept
+		{
+			return iterator(_data);
+		}
+
+		// Returns an iterator pointing to the first element of the FixedArray.
+		// Returns nullptr if the FixedArray is empty.
+		const_iterator begin() const noexcept
+		{
+			return const_iterator(_data);
+		}
+
+		// Returns an iterator pointing to the first element of the FixedArray.
+		// Returns nullptr if the FixedArray is empty.
+		const_iterator cbegin() const noexcept
+		{
+			return const_iterator(_data);
+		}
+
+		// Returns a reverse iterator pointing to the first element of the FixedArray.
+		// Returns nullptr if the FixedArray is empty.
+		reverse_iterator rbegin() noexcept
+		{
+			return reverse_iterator(_data);
+		}
+
+		// Returns a reverse iterator pointing to the first element of the FixedArray.
+		// Returns nullptr if the FixedArray is empty.
+		const_reverse_iterator rbegin() const noexcept
+		{
+			return const_reverse_iterator(_data);
+		}
+
+		// Returns a reverse iterator pointing to the first element of the FixedArray.
+		// Returns nullptr if the FixedArray is empty.
+		const_reverse_iterator crbegin() const noexcept
+		{
+			return const_reverse_iterator(_data);
+		}
+
+		// Returns an iterator pointing to 1 past the last element of the FixedArray.
+		// Returns nullptr if the FixedArray is empty.
+		iterator end() noexcept
+		{
+			return iterator(_data + N);
+		}
+
+		// Returns an iterator pointing to 1 past the last element of the FixedArray.
+		// Returns nullptr if the FixedArray is empty.
+		const_iterator end() const noexcept
+		{
+			return const_iterator(_data + N);
+		}
+
+		// Returns an iterator pointing to 1 past the last element of the FixedArray.
+		// Returns nullptr if the FixedArray is empty.
+		const_iterator cend() const noexcept
+		{
+			return const_iterator(_data + N);
+		}
+
+		// Returns a reverse iterator pointing to 1 past the last element of the FixedArray.
+		// Returns nullptr if the FixedArray is empty.
+		reverse_iterator rend() noexcept
+		{
+			return reverse_iterator(_data + N);
+		}
+
+		// Returns a reverse iterator pointing to 1 past the last element of the FixedArray.
+		// Returns nullptr if the FixedArray is empty.
+		const_reverse_iterator rend() const noexcept
+		{
+			return const_reverse_iterator(_data + N);
+		}
+
+		// Returns a reverse iterator pointing to 1 past the last element of the FixedArray.
+		// Returns nullptr if the FixedArray is empty.
+		const_reverse_iterator crend() const noexcept
+		{
+			return const_reverse_iterator(_data + N);
+		}
+
+		// Returns the element at the given index of the FixedArray.
+		// Throws a std::out_of_range if given an invalid index.
+		reference at(size_type index)
+		{
+			if (index >= N)
+				throw std::out_of_range("ERROR: Invalid array index.");
+			return _data[index];
+		}
+
+		// Returns the element at the given index of the FixedArray.
+		// Throws a std::out_of_range if given an invalid index.
+		const_reference at(size_type index) const
+		{
+			if (index >= N)
+				throw std::out_of_range("ERROR: Invalid array index.");
+			return _data[index];
+		}
+
+		// Sets the element at the given index to the given value.
+		// Throws a std::out_of_range if given an invalid index.
+		void set(size_type index, const_reference value)
+		{
+			if (index >= N)
+				throw std::out_of_range("ERROR: Invalid array index.");
+			_data[index] = value;
+		}
+
+		// Swaps the contents of this FixedArray with another FixedArray.
+		void swapWith(FixedArray& other) noexcept
+		{
+			std::swap(_data, other._data);
+		}
+
+		// Returns the element at the given index the FixedArray.
+		// Does NOT perform bounds-checking.
+		reference operator [] (size_type index)
+		{
+			return _data[index];
+		}
+
+		// Returns the element at the given index the FixedArray.
+		// Does NOT perform bounds-checking.
+		const_reference operator [] (size_type index) const
+		{
+			return _data[index];
+		}
+	};
+}
 
 // Overload of binary operator ==
-bool operator == (const jlib::String& A, const jlib::String& B);
+template <std::regular T, std::size_t N>
+bool operator == (const jlib::FixedArray<T, N>& A, const jlib::FixedArray<T, N>& B)
+{
+	for (std::size_t i = 0; i < N; ++i)
+	{
+		if (A[i] != B[i])
+			return false;
+	}
 
-// Overload of binary operator ==
-bool operator != (const jlib::String& A, const jlib::String& B);
+	return true;
+}
 
-// Overload of binary operator <
-bool operator < (const jlib::String& A, const jlib::String& B);
+// Overload of binary operator !=
+template <std::regular T, std::size_t N>
+bool operator != (const jlib::FixedArray<T, N>& A, const jlib::FixedArray<T, N>& B)
+{
+	for (std::size_t i = 0; i < N; ++i)
+	{
+		if (A[i] != B[i])
+			return true;
+	}
 
-// Overload of binary operator <=
-bool operator <= (const jlib::String& A, const jlib::String& B);
-
-// Overload of binary operator >
-bool operator > (const jlib::String& A, const jlib::String& B);
-
-// Overload of binary operator >=
-bool operator >= (const jlib::String& A, const jlib::String& B);
-
-// Overload of binary operator <=
-std::strong_ordering operator <=> (const jlib::String& A, const jlib::String& B);
-
-// Overload of std::ostream operator <<
-std::ostream& operator << (std::ostream& os, const jlib::String& A);
-
-// Overload of std::wostream operator <<
-std::wostream& operator << (std::wostream& wos, const jlib::String& A);
+	return false;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// ARRAY TEMPLATE CLASS                                                                          //
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace jlib
+{
+	// 
+	template <std::semiregular T> class Array
+	{
+		public:
+
+		using value_type = T;
+		using size_type = std::size_t;
+		using difference_type = std::ptrdiff_t;
+		using pointer = value_type*;
+		using const_pointer = const value_type*;
+		using reference = value_type&;
+		using const_reference = const value_type&;
+		using iterator = value_type*;
+		using const_iterator = const value_type*;
+		using reverse_iterator = std::reverse_iterator<iterator>;
+		using const_reverse_iterator = const std::reverse_iterator<iterator>;
+
+		private:
+
+		pointer _data;
+		size_type _size;
+
+		// 
+		void allocate(size_type size)
+		{
+			if (size == 0)
+			{
+				_data = nullptr;
+				_size = 0;
+			}
+			else
+			{
+				try
+				{
+					_data = new value_type[size];
+					_size = size;
+				}
+				catch (...)
+				{
+					_data = nullptr;
+					_size = 0;
+					throw;
+				}
+			}
+		}
+
+		// 
+		void reallocate(size_type size)
+		{
+			if (size != _size)
+			{
+				delete[] _data;
+				allocate(size);
+			}
+		}
+
+		public:
+
+		// Default constructor.
+		Array()
+		{
+			allocate(0);
+		}
+
+		// Size constructor.
+		Array(size_type size)
+		{
+			allocate(size);
+		}
+
+		// Size and value constructor.
+		Array(size_type size, const_reference value)
+		{
+			allocate(size);
+
+			for (size_type i(0); i < _size; ++i)
+				_data[i] = value;
+		}
+
+		// Constructs the Array with the contents in the range[begin, end).
+		// This DOES NOT move the contents from the given range, it simply
+		// copies its contents into the new Array.
+		Array(const_pointer begin, const_pointer end)
+		{
+			size_type size = end - begin;
+			allocate(size);
+			std::copy(begin, end, _data);
+		}
+
+		// std::initializer_list constructor.
+		Array(std::initializer_list<T> elems)
+		{
+			allocate(elems.size());
+			std::copy(elems.begin(), elems.end(), _data);
+		}
+
+		// Copy constructor.
+		Array(const Array& other)
+		{
+			allocate(other._size);
+			std::copy(other._data, other._data + _size, _data);
+		}
+
+		// Constructs the Array from another type of Array.
+		// This constructor doesn't replace the copy constructor,
+		// it's called only when U != T.
+		template <std::semiregular U>
+		explicit Array(const Array<U>& other)
+		{
+			allocate(other._size);
+
+			for (size_type i(0); i < _size; ++i)
+				_data[i] = static_cast<T>(other._data[i]);
+		}
+
+		// Move constructor.
+		Array(Array&& other) noexcept
+		{
+			_data = other._data;
+			_size = other._size;
+			other._data = nullptr;
+			other._size = 0;
+		}
+
+		// std::initializer_list assignment operator.
+		Array& operator = (std::initializer_list<T> elems)
+		{
+			reallocate(elems.size());
+			std::copy(elems.begin(), elems.end(), _data);
+			return *this;
+		}
+
+		// Copy assignment operator.
+		Array& operator = (const Array& other)
+		{
+			reallocate(other._size);
+			std::copy(other._data, other._data + _size, _data);
+			return *this;
+		}
+
+		// Move assignment operator.
+		Array& operator = (Array&& other) noexcept
+		{
+			delete[] _data;
+			_data = other._data;
+			_size = other._size;
+			other._data = nullptr;
+			other._size = 0;
+			return *this;
+		}
+
+		// Destructor.
+		~Array() noexcept
+		{
+			delete[] _data;
+		}
+
+		// Returns the size of the Array.
+		size_type size() const noexcept
+		{
+			return _size;
+		}
+
+		// Returns true if the Array is empty.
+		bool isEmpty() const noexcept
+		{
+			return _size != 0;
+		}
+
+		// Returns the first element of the Array.
+		// Throws a std::out_of_range if the Array is empty.
+		reference first()
+		{
+			if (_size == 0)
+				throw std::out_of_range("ERROR: Empty array.");
+
+			return _data[0];
+		}
+
+		// Returns the first element of the Array.
+		// Throws a std::out_of_range if the Array is empty.
+		const_reference first() const
+		{
+			if (_size == 0)
+				throw std::out_of_range("ERROR: Empty array.");
+
+			return _data[0];
+		}
+
+		// Returns the last element of the Array.
+		// Throws a std::out_of_range if the Array is empty.
+		reference last()
+		{
+			if (_size == 0)
+				throw std::out_of_range("ERROR: Empty array.");
+
+			return _data[_size - 1];
+		}
+
+		// Returns the last element of the Array.
+		// Throws a std::out_of_range if the Array is empty.
+		const_reference last() const
+		{
+			if (_size == 0)
+				throw std::out_of_range("ERROR: Empty array.");
+
+			return _data[_size - 1];
+		}
+
+		// Returns the pointer of the Array.
+		pointer data() noexcept
+		{
+			return _data;
+		}
+
+		// Returns the pointer of the Array.
+		const_pointer data() const noexcept
+		{
+			return _data;
+		}
+
+		// Returns an iterator pointing to the first element of the Array.
+		// Returns nullptr if the Array is empty.
+		iterator begin() noexcept
+		{
+			return iterator(_data);
+		}
+
+		// Returns an iterator pointing to the first element of the Array.
+		// Returns nullptr if the Array is empty.
+		const_iterator begin() const noexcept
+		{
+			return const_iterator(_data);
+		}
+
+		// Returns an iterator pointing to the first element of the Array.
+		// Returns nullptr if the Array is empty.
+		const_iterator cbegin() const noexcept
+		{
+			return const_iterator(_data);
+		}
+
+		// Returns a reverse iterator pointing to the first element of the Array.
+		// Returns nullptr if the Array is empty.
+		reverse_iterator rbegin() noexcept
+		{
+			return reverse_iterator(_data);
+		}
+
+		// Returns a reverse iterator pointing to the first element of the Array.
+		// Returns nullptr if the Array is empty.
+		const_reverse_iterator rbegin() const noexcept
+		{
+			return const_reverse_iterator(_data);
+		}
+
+		// Returns a reverse iterator pointing to the first element of the Array.
+		// Returns nullptr if the Array is empty.
+		const_reverse_iterator crbegin() const noexcept
+		{
+			return const_reverse_iterator(_data);
+		}
+
+		// Returns an iterator pointing to 1 past the last element of the Array.
+		// Returns nullptr if the Array is empty.
+		iterator end() noexcept
+		{
+			return iterator(_data + _size);
+		}
+
+		// Returns an iterator pointing to 1 past the last element of the Array.
+		// Returns nullptr if the Array is empty.
+		const_iterator end() const noexcept
+		{
+			return const_iterator(_data + _size);
+		}
+
+		// Returns an iterator pointing to 1 past the last element of the Array.
+		// Returns nullptr if the Array is empty.
+		const_iterator cend() const noexcept
+		{
+			return const_iterator(_data + _size);
+		}
+
+		// Returns a reverse iterator pointing to 1 past the last element of the Array.
+		// Returns nullptr if the Array is empty.
+		reverse_iterator rend() noexcept
+		{
+			return reverse_iterator(_data + _size);
+		}
+
+		// Returns a reverse iterator pointing to 1 past the last element of the Array.
+		// Returns nullptr if the Array is empty.
+		const_reverse_iterator rend() const noexcept
+		{
+			return const_reverse_iterator(_data + _size);
+		}
+
+		// Returns a reverse iterator pointing to 1 past the last element of the Array.
+		// Returns nullptr if the Array is empty.
+		const_reverse_iterator crend() const noexcept
+		{
+			return const_reverse_iterator(_data + _size);
+		}
+
+		// Returns the element at the given index of the Array.
+		// Throws a std::out_of_range if given an invalid index.
+		reference at(size_type index)
+		{
+			if (index >= _size)
+				throw std::out_of_range("ERROR: Invalid array index.");
+
+			return _data[index];
+		}
+
+		// Returns the element at the given index of the Array.
+		// Throws a std::out_of_range if given an invalid index.
+		const_reference at(size_type index) const
+		{
+			if (index >= _size)
+				throw std::out_of_range("ERROR: Invalid array index.");
+
+			return _data[index];
+		}
+
+		// Sets the element at the given index to the given value.
+		// Throws a std::out_of_range if given an invalid index.
+		void set(size_type index, const_reference value)
+		{
+			if (index >= _size)
+				throw std::out_of_range("ERROR: Invalid array index.");
+
+			_data[index] = value;
+		}
+
+		// Empties the Array.
+		void clear() noexcept
+		{
+			delete[] _data;
+			_size = 0;
+		}
+
+		// Swaps the contents of this Array with another Array.
+		void swapWith(Array& other) noexcept
+		{
+			std::swap(_data, other._data);
+			std::swap(_size, other._size);
+		}
+
+		// Returns the element at the given index the Array.
+		// Does NOT perform bounds-checking.
+		reference operator [] (size_type index)
+		{
+			return _data[index];
+		}
+
+		// Returns the element at the given index the Array.
+		// Does NOT perform bounds-checking.
+		const_reference operator [] (size_type index) const
+		{
+			return _data[index];
+		}
+	};
+}
+
+// Overload of binary operator ==
+template <std::regular T>
+bool operator == (const jlib::Array<T>& A, const jlib::Array<T>& B)
+{
+	if (A.size() != B.size())
+		return false;
+
+	for (std::size_t i = 0; i < A.size(); ++i)
+	{
+		if (A[i] != B[i])
+			return false;
+	}
+
+	return true;
+}
+
+// Overload of binary operator !=
+template <std::regular T>
+bool operator != (const jlib::Array<T>& A, const jlib::Array<T>& B)
+{
+	if (A.size() != B.size())
+		return true;
+
+	for (std::size_t i = 0; i < A.size(); ++i)
+	{
+		if (A[i] != B[i])
+			return true;
+	}
+
+	return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// ANGLE CLASS                                                                                   //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -595,6 +1417,7 @@ jlib::Angle& operator /= (jlib::Angle& A, float scalar);
 std::ostream& operator << (std::ostream& os, jlib::Angle A);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// FRACTION TEMPLATE CLASS                                                                       //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -1047,6 +1870,7 @@ std::ostream& operator << (std::ostream& os, const jlib::Fraction<T>& A)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// VECTOR2 TEMPLATE CLASS                                                                        //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -1096,6 +1920,12 @@ namespace jlib
 			y = B.y - A.y;
 		}
 
+		// Default copy constructor.
+		Vector2(const Vector2& other) = default;
+
+		// Default move constructor.
+		Vector2(Vector2&& other) = default;
+
 		// Constructs the Vector2 from another type of Vector2.
 		// This constructor doesn't replace the copy constructor,
 		// it's called only when U != T.
@@ -1105,6 +1935,31 @@ namespace jlib
 			x = static_cast<T>(other.x);
 			y = static_cast<T>(other.y);
 		}
+
+		// Constructs the Vector2 from a sf::Vector2.
+		Vector2(const sf::Vector2<T>& other)
+		{
+			x = other.x;
+			y = other.y;
+		}
+
+		// Default copy assignment operator.
+		Vector2& operator = (const Vector2& other) = default;
+
+		// Default move assignment operator.
+		Vector2& operator = (Vector2&& other) = default;
+
+		// Assigns the Vector2's values from a sf::Vector2.
+		Vector2& operator = (const sf::Vector2<T>& other)
+		{
+			x = other.x;
+			y = other.y;
+
+			return *this;
+		}
+
+		// Destructor.
+		~Vector2() = default;
 
 		// Sets all the values of the Vector2 at once.
 		// Sets the x component of the Vector2 to X.
@@ -1126,7 +1981,7 @@ namespace jlib
 		// Returns the magnitude of the Vector2.
 		constexpr float magnitude() const
 		{
-			return std::sqrtf(std::powf(x, 2.f) + std::powf(y, 2.f));
+			return std::sqrtf(std::powf(x, 2.0f) + std::powf(y, 2.0f));
 		}
 
 		// Returns the unit vector of this Vector2.
@@ -1137,9 +1992,15 @@ namespace jlib
 		}
 
 		// Returns a normal vector of this Vector2.
-		Vector2 normal_vector()
+		Vector2 normal()
 		{
 			return Vector2(-y, x);
+		}
+
+		// Returns a sf::Vector2 copy of the Vector2.
+		sf::Vector2<T> toSFML() const
+		{
+			return sf::Vector2<T>(x, y);
 		}
 
 		// Returns a std::string representation of the Vector2.
@@ -1149,7 +2010,7 @@ namespace jlib
 		}
 	};
 
-	// Converts the given Vector2.
+	// Converts the given Vector2 to another type of Vector2.
 	template <std_arithmetic T, std_arithmetic U>
 	Vector2<T> convert(const Vector2<U>& A)
 	{
@@ -1383,6 +2244,7 @@ std::ostream& operator << (std::ostream& os, const jlib::Vector2<T>& A)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// VECTOR3 TEMPLATE CLASS                                                                        //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -1430,6 +2292,14 @@ namespace jlib
 			z = B.z - A.z;
 		}
 
+		// Default copy constructor.
+		Vector3(const Vector3& other) = default;
+
+		// Default move constructor.
+		Vector3(Vector3&& other) = default;
+
+
+
 		// Constructs the Vector3 from another type of Vector3.
 		// This constructor doesn't replace the copy constructor,
 		// it's called only when U != T.
@@ -1441,21 +2311,32 @@ namespace jlib
 			z = static_cast<T>(other.z);
 		}
 
-		Vector3(std::initializer_list<T> elems)
+		// Constructs the Vector3 from a sf::Vector3.
+		Vector3(const sf::Vector3<T>& other)
 		{
-			x = *(elems.begin() + 0);
-			y = *(elems.begin() + 1);
-			z = *(elems.begin() + 2);
+			x = other.x;
+			y = other.y;
+			z = other.z;
 		}
 
-		Vector3& operator = (std::initializer_list<T> elems)
+		// Default copy assignment operator.
+		Vector3& operator = (const Vector3& other) = default;
+
+		// Default move assignment operator.
+		Vector3& operator = (Vector3&& other) = default;
+
+		// Assigns the Vector3's values from a sf::Vector3.
+		Vector3& operator = (const sf::Vector3<T>& other)
 		{
-			x = *(elems.begin() + 0);
-			y = *(elems.begin() + 1);
-			z = *(elems.begin() + 2);
+			x = other.x;
+			y = other.y;
+			z = other.z;
 
 			return *this;
 		}
+
+		// Destructor.
+		~Vector3() = default;
 
 		// Sets all the values of the Vector3 at once.
 		// Sets the x component of the Vector3 to X.
@@ -1480,7 +2361,13 @@ namespace jlib
 		// Returns the magnitude of the Vector3.
 		float magnitude() const
 		{
-			return std::sqrtf(std::powf(x, 2.f) + std::powf(y, 2.f) + std::powf(z, 2.f));
+			return std::sqrtf(std::powf(x, 2.0f) + std::powf(y, 2.0f) + std::powf(z, 2.0f));
+		}
+
+		// Returns a sf::Vector3 copy of the Vector3.
+		sf::Vector3<T> toSFML() const
+		{
+			return sf::Vector3<T>(x, y, z);
 		}
 
 		// Returns a std::string representation of the Vector3.
@@ -1489,6 +2376,17 @@ namespace jlib
 			return '<' + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + '>';
 		}
 	};
+
+	// Converts the given Vector3 to another type of Vector3.
+	template <std_arithmetic T, std_arithmetic U>
+	Vector3<T> convert(const Vector3<U>& A)
+	{
+		T x = static_cast<T>(A.x);
+		T y = static_cast<T>(A.y);
+		T z = static_cast<T>(A.z);
+
+		return Vector3<T>(x, y, z);
+	}
 
 	// Returns the distance between the 2 given Vector3s.
 	template <std_arithmetic T>
@@ -1733,6 +2631,7 @@ std::ostream& operator << (std::ostream& os, const jlib::Vector3<T>& A)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// VECTORN TEMPLATE CLASS                                                                        //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -1743,27 +2642,43 @@ namespace jlib
 	{
 		public:
 
-		std::array<T, N> data;
+		using value_type = T;
+		using size_type = std::size_t;
+		using difference_type = std::ptrdiff_t;
+		using pointer = value_type*;
+		using const_pointer = const value_type*;
+		using reference = value_type&;
+		using const_reference = const value_type&;
+		using iterator = value_type*;
+		using const_iterator = const value_type*;
+		using reverse_iterator = std::reverse_iterator<iterator>;
+		using const_reverse_iterator = const std::reverse_iterator<iterator>;
+
+		private:
+
+		FixedArray<T, N> _data;
+
+		public:
 
 		// Default constructor.
 		// Sets each component of the VectorN to 0.
 		VectorN()
 		{
-			for (T& elem : data)
-				elem = static_cast<T>(0);
+			for (size_type i = 0; i < N; ++i)
+				_data[i] = static_cast<T>(0);
 		}
 
 		// Constructs the VectorN from the given coordinates.
 		VectorN(std::initializer_list<T> elems)
 		{
-			std::copy(elems.begin(), elems.end(), data.begin());
+			std::copy(elems.begin(), elems.end(), _data.data());
 		}
 
 		// Constructs the VectorN as the displacement vector of the two points.
 		VectorN(const VectorN& A, const VectorN& B)
 		{
-			for (std::size_t i(0); i < N; ++i)
-				data[i] = B[i] - A[i];
+			for (size_type i(0); i < N; ++i)
+				_data[i] = B._data[i] - A._data[i];
 		}
 
 		// Constructs the VectorN from another type of VectorN.
@@ -1772,109 +2687,199 @@ namespace jlib
 		template <std_arithmetic U>
 		VectorN(const VectorN<U, N>& other)
 		{
-			for (std::size_t i(0); i < N; ++i)
-				data[i] = static_cast<T>(other.data[i]);
+			for (size_type i(0); i < N; ++i)
+				_data[i] = static_cast<T>(other._data[i]);
 		}
 
 		// Constructs the VectorN from the given coordinates.
 		VectorN& operator = (std::initializer_list<T> elems)
 		{
-			std::copy(elems.begin(), elems.end(), data.begin());
+			std::copy(elems.begin(), elems.end(), _data.data());
 			return *this;
 		}
 
-		// Copies the components of a different type of Vector2.
+		// Copies the components of a different type of JVector2.
 		template <jlib::std_arithmetic U>
 		void copyFrom(const VectorN<U, N>& other)
 		{
-			for (std::size_t i(0); i < N; ++i)
-				data[i] = static_cast<T>(other.data[i]);
+			std::copy(other._data, other._data + N, _data);
 		}
 
 		// Returns the amount of dimensions the VectorN has.
-		std::size_t dimensions() const
+		size_type dimensions() const
 		{
 			return N;
 		}
 
 		// Returns the first element of the VectorN.
 		// Throws a std::out_of_range if the VectorN is empty.
-		T& first()
+		reference first()
 		{
 			if (N == 0)
 				throw std::out_of_range("ERROR: The PointN has 0 dimensions.");
 
-			return data[0];
+			return _data[0];
 		}
 
 		// Returns the first element of the VectorN.
 		// Throws a std::out_of_range if the VectorN is empty.
-		const T& first() const
+		const_reference first() const
 		{
 			if (N == 0)
 				throw std::out_of_range("ERROR: The PointN has 0 dimensions.");
 
-			return data[0];
+			return _data[0];
 		}
 
 		// Returns the last element of the VectorN.
 		// Throws a std::out_of_range if the VectorN is empty.
-		T& last()
+		reference last()
 		{
 			if (N == 0)
 				throw std::out_of_range("ERROR: The PointN has 0 dimensions.");
 
-			return data[N - 1];
+			return _data[N - 1];
 		}
 
 		// Returns the last element of the VectorN.
 		// Throws a std::out_of_range if the VectorN is empty.
-		const T& last() const
+		const_reference last() const
 		{
 			if (N == 0)
 				throw std::out_of_range("ERROR: The PointN has 0 dimensions.");
 
-			return data[N - 1];
+			return _data[N - 1];
+		}
+
+		// Returns the pointer to the elements of the VectorN.
+		pointer data()
+		{
+			return _data.data();
+		}
+
+		// Returns the pointer to the elements of the VectorN.
+		const_pointer data() const
+		{
+			return _data.data();
+		}
+
+		// Returns an iterator pointing to the first element of the VectorN.
+		// Returns nullptr if the dimension count is 0.
+		iterator begin()
+		{
+			return _data;
+		}
+
+		// Returns an iterator pointing to the first element of the VectorN.
+		// Returns nullptr if the dimension count is 0.
+		const_iterator begin() const
+		{
+			return _data;
+		}
+
+		// Returns an iterator pointing to the first element of the VectorN.
+		// Returns nullptr if the dimension count is 0.
+		const_iterator cbegin() const
+		{
+			return _data;
+		}
+
+		// Returns a reverse iterator pointing to the first element of the VectorN.
+		// Returns nullptr if the dimension count is 0.
+		reverse_iterator rbegin()
+		{
+			return _data;
+		}
+
+		// Returns a reverse iterator pointing to the first element of the VectorN.
+		// Returns nullptr if the dimension count is 0.
+		const_reverse_iterator rbegin() const
+		{
+			return _data;
+		}
+
+		// Returns a reverse iterator pointing to the first element of the VectorN.
+		// Returns nullptr if the dimension count is 0.
+		const_reverse_iterator crbegin() const
+		{
+			return _data;
+		}
+
+		// Returns an iterator pointing to 1 past the last element of the VectorN.
+		// Returns nullptr if the dimension count is 0.
+		iterator end()
+		{
+			return _data + N;
+		}
+
+		// Returns an iterator pointing to 1 past the last element of the VectorN.
+		// Returns nullptr if the dimension count is 0.
+		const_iterator end() const
+		{
+			return _data + N;
+		}
+
+		// Returns an iterator pointing to 1 past the last element of the VectorN.
+		// Returns nullptr if the dimension count is 0.
+		const_iterator cend() const
+		{
+			return _data + N;
+		}
+
+		// Returns a reverse iterator pointing to 1 past the last element of the VectorN.
+		// Returns nullptr if the dimension count is 0.
+		reverse_iterator rend()
+		{
+			return _data + N;
+		}
+
+		// Returns a reverse iterator pointing to 1 past the last element of the VectorN.
+		// Returns nullptr if the dimension count is 0.
+		const_reverse_iterator rend() const
+		{
+			return _data + N;
+		}
+
+		// Returns a reverse iterator pointing to 1 past the last element of the VectorN.
+		// Returns nullptr if the dimension count is 0.
+		const_reverse_iterator crend() const
+		{
+			return _data + N;
 		}
 
 		// Returns the element at the given index.
 		// Throws a std::out_of_range if given an invalid index.
-		T& at(std::size_t index)
+		reference at(size_type index)
 		{
 			if (index >= N)
 				throw std::out_of_range("ERROR: Invalid PointN index.");
-
-			return data[index];
+			return _data[index];
 		}
 
 		// Returns the element at the given index.
 		// Throws a std::out_of_range if given an invalid index.
-		const T& at(std::size_t index) const
+		const_reference at(size_type index) const
 		{
 			if (index >= N)
 				throw std::out_of_range("ERROR: Invalid PointN index.");
-
-			return data[index];
+			return _data[index];
 		}
 
-		// Returns the element at the given index.
-		T& operator [] (std::size_t index)
+		// Sets the element at the given index to the given value.
+		// Throws a std::out_of_range if given an invalid index.
+		void set(size_type index, const_reference value)
 		{
-			return data[index];
-		}
-
-		// Returns the element at the given index.
-		const T& operator [] (std::size_t index) const
-		{
-			return data[index];
+			if (index >= N)
+				throw std::out_of_range("ERROR: Invalid PointN index.");
+			_data[index] = value;
 		}
 
 		// Returns the magnitude of the VectorN.
 		float magnitude() const
 		{
-			float value = 0.f;
+			float value = 0.0f;
 
-			for (std::size_t i(0); i < N; ++i)
+			for (size_type i = 0; i < N; ++i)
 				value += std::powf(data[i], 2);
 
 			return std::sqrtf(value);
@@ -1886,20 +2891,32 @@ namespace jlib
 			if (N == 0)
 				return "";
 			if (N == 1)
-				return '<' + std::to_string(data[0]) + '>';
+				return '<' + std::to_string(_data[0]) + '>';
 
 			std::string str;
 
 			str += '<';
-			for (std::size_t i(0); i < N - 1; ++i)
-				str += std::to_string(data[i]) + ", ";
-			str += std::to_string(data[N - 1]) + '>';
+			for (size_type i = 0; i < N - 1; ++i)
+				str += std::to_string(_data[i]) + ", ";
+			str += std::to_string(_data[N - 1]) + '>';
 
 			return str;
 		}
+
+		// Returns the element at the given index.
+		reference operator [] (size_type index)
+		{
+			return _data[index];
+		}
+
+		// Returns the element at the given index.
+		const_reference operator [] (size_type index) const
+		{
+			return _data[index];
+		}
 	};
 
-	// Returns the distance between the 2 given VectorNs.
+	// Returns the distance between the 2 given JVectorNs.
 	template <std_arithmetic T, std::size_t N>
 	float distance(const VectorN<T, N>& A, const VectorN<T, N>& B)
 	{
@@ -1914,11 +2931,11 @@ namespace jlib
 		return VectorN<T, N>(A) / A.magnitude();
 	}
 
-	// Returns the dot product of the 2 given VectorNs.
+	// Returns the dot product of the 2 given JVectorNs.
 	template <std_arithmetic T, std::size_t N>
 	float dot_product(const VectorN<T, N>& A, const VectorN<T, N>& B)
 	{
-		float value = 0.f;
+		float value = 0.0f;
 
 		for (std::size_t i(0); i < N; ++i)
 			value += (A[i] * B[i]);
@@ -1946,28 +2963,40 @@ namespace jlib
 		return V;
 	}
 
-	typedef jlib::VectorN<bool, 4>   Vector4b;
-	typedef jlib::VectorN<i8, 4>     Vector4c;
-	typedef jlib::VectorN<u8, 4>     Vector4uc;
-	typedef jlib::VectorN<i16, 4>    Vector4s;
-	typedef jlib::VectorN<u16, 4>    Vector4us;
-	typedef jlib::VectorN<i32, 4>    Vector4i;
-	typedef jlib::VectorN<u32, 4>    Vector4u;
-	typedef jlib::VectorN<float, 4>  Vector4f;
+	typedef jlib::VectorN<bool, 4>   JVector4b;
+	typedef jlib::VectorN<i8, 4>     JVector4c;
+	typedef jlib::VectorN<u8, 4>     JVector4uc;
+	typedef jlib::VectorN<i16, 4>    JVector4s;
+	typedef jlib::VectorN<u16, 4>    JVector4us;
+	typedef jlib::VectorN<i32, 4>    JVector4i;
+	typedef jlib::VectorN<u32, 4>    JVector4u;
+	typedef jlib::VectorN<float, 4>  JVector4f;
 }
 
 // Overload of binary operator ==
 template <jlib::std_arithmetic T, std::size_t N>
 bool operator == (const jlib::VectorN<T, N>& A, const jlib::VectorN<T, N>& B)
 {
-	return A.data == B.data;
+	for (std::size_t i = 0; i < N; ++i)
+	{
+		if (A[i] != B[i])
+			return false;
+	}
+
+	return true;
 }
 
 // Overload of binary operator !=
 template <jlib::std_arithmetic T, std::size_t N>
 bool operator != (const jlib::VectorN<T, N>& A, const jlib::VectorN<T, N>& B)
 {
-	return A.data != B.data;
+	for (std::size_t i = 0; i < N; ++i)
+	{
+		if (A[i] != B[i])
+			return true;
+	}
+
+	return false;
 }
 
 // Overload of binary operator <
@@ -2108,7 +3137,7 @@ jlib::VectorN<T, N> operator / (U scalar, const jlib::VectorN<T, N>& A)
 
 // Overload of binary operator +=
 template <jlib::std_arithmetic T, std::size_t N>
-jlib::VectorN<T, N>& operator += (const jlib::VectorN<T, N>& A, const jlib::VectorN<T, N>& B)
+jlib::VectorN<T, N>& operator += (jlib::VectorN<T, N>& A, const jlib::VectorN<T, N>& B)
 {
 	for (std::size_t i(0); i < N; ++i)
 		A[i] += B[i];
@@ -2118,7 +3147,7 @@ jlib::VectorN<T, N>& operator += (const jlib::VectorN<T, N>& A, const jlib::Vect
 
 // Overload of binary operator -=
 template <jlib::std_arithmetic T, std::size_t N>
-jlib::VectorN<T, N>& operator -= (const jlib::VectorN<T, N>& A, const jlib::VectorN<T, N>& B)
+jlib::VectorN<T, N>& operator -= (jlib::VectorN<T, N>& A, const jlib::VectorN<T, N>& B)
 {
 	for (std::size_t i(0); i < N; ++i)
 		A[i] -= B[i];
@@ -2155,6 +3184,7 @@ std::ostream& operator << (std::ostream& os, const jlib::VectorN<T, N>& A)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// RECT TEMPLATE CLASS                                                                           //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -2166,8 +3196,8 @@ namespace jlib
 
 		T x;
 		T y;
-		T width;
-		T height;
+		T w;
+		T h;
 
 		// Default constructor.
 		// Sets the x component of the vertex of the Rect to 0.
@@ -2178,34 +3208,51 @@ namespace jlib
 		{
 			x = static_cast<T>(0);
 			y = static_cast<T>(0);
-			width = static_cast<T>(0);
-			height = static_cast<T>(0);
+			w = static_cast<T>(0);
+			h = static_cast<T>(0);
 		}
 
 		// 4-parameter constructor.
 		// Sets the x component of the vertex of the Rect to X.
 		// Sets the y component of the vertex of the Rect to Y.
-		// Sets the width of the Rect to Width.
-		// Sets the height of the Rect to Height.
-		Rect(T X, T Y, T Width, T Height)
+		// Sets the width of the Rect to W.
+		// Sets the height of the Rect to H.
+		Rect(T X, T Y, T W, T H)
 		{
 			x = X;
 			y = Y;
-			width = Width;
-			height = Height;
+			w = W;
+			h = H;
 		}
 
-		// Vector2 constructor.
+		// Single Vector2 constructor.
 		// Sets the vertex of the Rect to the given point.
-		// Sets the width of the Rect to Width.
-		// Sets the height of the Rect to Height.
-		Rect(const Vector2<T>& P, T Width, T Height)
+		// Sets the width of the Rect to W.
+		// Sets the height of the Rect to H.
+		Rect(const Vector2<T>& Vertex, T W, T H)
 		{
-			x = P.x;
-			y = P.y;
-			width = Width;
-			height = Height;
+			x = Vertex.x;
+			y = Vertex.y;
+			w = W;
+			h = H;
 		}
+
+		// Double Vector2 constructor.
+		// Sets the vertex of the Rect to the given point.
+		// Sets the dimensions of the Rect to the given dimensions.
+		Rect(const Vector2<T>& Vertex, const Vector2<T>& Dimensions)
+		{
+			x = Vertex.x;
+			y = Vertex.y;
+			w = Dimensions.x;
+			h = Dimensions.y;
+		}
+
+		// Default copy constructor.
+		Rect(const Rect& other) = default;
+
+		// Default move constructor.
+		Rect(Rect&& other) = default;
 
 		// Constructs the Rect from another type of Rect.
 		// This constructor doesn't replace the copy constructor,
@@ -2215,97 +3262,128 @@ namespace jlib
 		{
 			x = static_cast<T>(other.x);
 			y = static_cast<T>(other.y);
-			width = static_cast<T>(other.width);
-			height = static_cast<T>(other.height);
+			w = static_cast<T>(other.w);
+			h = static_cast<T>(other.h);
 		}
+
+		// Constructs the Rect from a sf::Rect.
+		Rect(const sf::Rect<T>& other)
+		{
+			x = other.left;
+			y = other.top;
+			w = other.width;
+			h = other.height;
+		}
+
+		// Default copy assignment operator.
+		Rect& operator = (const Rect& other) = default;
+
+		// Default move assignment operator.
+		Rect& operator = (Rect&& other) = default;
+
+		// Assigns the Rect's values from a sf::Rect.
+		Rect& operator = (const sf::Rect<T>& other)
+		{
+			x = other.left;
+			y = other.top;
+			w = other.width;
+			h = other.height;
+
+			return *this;
+		}
+
+		// Destructor.
+		~Rect() = default;
 
 		// Sets all the values of the Rect at once.
 		// Sets the x component of the vertex of the Rect to X.
 		// Sets the y component of the vertex of the Rect to Y.
-		// Sets the width of the Rect to Width.
-		// Sets the height of the Rect to Height.
-		void set(T X, T Y, T Width, T Height)
+		// Sets the width of the Rect to W.
+		// Sets the height of the Rect to H.
+		void set(T X, T Y, T W, T H)
 		{
 			x = X;
 			y = Y;
-			width = Width;
-			height = Height;
+			w = W;
+			h = H;
 		}
 
-		// 
+		// Sets the x component of the vertex of the Rect to X.
+		// Sets the y component of the vertex of the Rect to Y.
 		void setVertex(T X, T Y)
 		{
 			x = X;
 			y = Y;
 		}
 
-		// 
-		void setVertex(const Vector2<T>& pos)
+		// Sets the vertex of the Rect to the given point.
+		void setVertex(const Vector2<T>& Vertex)
 		{
-			x = pos.x;
-			y = pos.y;
+			x = Vertex.x;
+			y = Vertex.y;
 		}
 
-		// 
-		void setDimensions(T Width, T Height)
+		// Sets the width of the Rect to W.
+		// Sets the height of the Rect to H.
+		void setDimensions(T W, T H)
 		{
-			width = Width;
-			height = Height;
+			w = W;
+			h = H;
 		}
 
-		// 
-		void setDimensions(const Vector2<T>& size)
+		// Sets the dimensions of the Rect to the given dimensions.
+		void setDimensions(const Vector2<T>& Dimensions)
 		{
-			width = size.x;
-			height = size.y;
+			w = Dimensions.x;
+			h = Dimensions.y;
 		}
 
 		// Returns the perimeter of the Rect.
 		float perimeter() const
 		{
-			return 2.f * (width + height);
+			return 2.0f * (w + h);
 		}
 
 		// Returns the area of the Rect.
 		float area() const
 		{
-			return width * height;
+			return w * h;
 		}
 
 		// Returns the top-left vertex of the Rect.
 		Vector2<T> topLeft() const
 		{
-			return Vector2<T>(std::min(x, x + width), std::min(y, y + height));
+			return Vector2<T>(std::min(x, x + w), std::min(y, y + h));
 		}
 
 		// Returns the top-right vertex of the Rect.
 		Vector2<T> topRight() const
 		{
-			return Vector2<T>(std::max(x, x + width), std::min(y, y + height));
+			return Vector2<T>(std::max(x, x + w), std::min(y, y + h));
 		}
 
 		// Returns the bottom-left vertex of the Rect.
 		Vector2<T> bottomLeft() const
 		{
-			return Vector2<T>(std::min(x, x + width), std::max(y, y + height));
+			return Vector2<T>(std::min(x, x + w), std::max(y, y + h));
 		}
 
 		// Returns the bottom-right vertex of the Rect.
 		Vector2<T> bottomRight() const
 		{
-			return Vector2<T>(std::max(x, x + width), std::max(y, y + height));
+			return Vector2<T>(std::max(x, x + w), std::max(y, y + h));
 		}
 
 		// Returns the dimensions of the Rect.
 		Vector2<T> dimensions() const
 		{
-			return Vector2<T>(width, height);
+			return Vector2<T>(w, h);
 		}
 
-		// Returns a std::array containing the vertices of the Rect.
-		std::array<Vector2<T>, 4> getVertices() const
+		// Returns a FixedArray containing the vertices of the Rect.
+		FixedArray<Vector2<T>, 4> getVertices() const
 		{
-			std::array<Vector2<T>, 4> arr;
+			FixedArray<Vector2<T>, 4> arr;
 
 			arr[0] = topLeft();
 			arr[1] = topRight();
@@ -2315,34 +3393,39 @@ namespace jlib
 			return arr;
 		}
 
-		// Checks if the given Point2 lies within or on the Rect.
+		// Checks if the given point lies within or on the Rect.
 		template <std_arithmetic U>
-		bool contains(T X, T Y)
+		bool contains(U X, U Y)
 		{
-			Vector2<T> A(topLeft());
-			Vector2<T> B(bottomRight());
+			T minX = std::min(x, static_cast<T>(x + w));
+			T maxX = std::max(x, static_cast<T>(x + w));
+			T minY = std::min(y, static_cast<T>(y + h));
+			T maxY = std::max(y, static_cast<T>(y + h));
 
-			return (X <= B.x) && (X >= A.x) && (Y <= B.y) && (Y >= A.y);
+			return (x >= minX) && (x < maxX) && (y >= minY) && (y < maxY);
 		}
 
-		// Checks if the given Point2 lies within or on the Rect.
+		// Checks if the given point lies within or on the Rect.
 		template <std_arithmetic U>
-		bool contains(const Vector2<U>& P)
+		bool contains(const Vector2<U>& Point)
 		{
-			Vector2<T> A(topLeft());
-			Vector2<T> B(bottomRight());
+			return contains(Point.x, Point.y);
+		}
 
-			return (P.x <= B.x) && (P.x >= A.x) && (P.y <= B.y) && (P.y >= A.y);
+		// Returns a sf::Rect copy of the Rect.
+		sf::Rect<T> toSFML() const
+		{
+			return sf::Rect<T>(x, y, w, h);
 		}
 
 		// Returns a std::string representation of the Rect.
 		std::string toString() const
 		{
-			return std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(width) + ", " + std::to_string(height);
+			return std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(w) + ", " + std::to_string(h);
 		}
 	};
 
-	// Checks if there is an intersection between the given Rectangles.
+	// Checks if there is an intersection between the given Rects.
 	template <std_arithmetic T>
 	bool intersection(const Rect<T>& A, const Rect<T>& B)
 	{
@@ -2365,14 +3448,14 @@ namespace jlib
 template <jlib::std_arithmetic T>
 bool operator == (const jlib::Rect<T>& A, const jlib::Rect<T>& B)
 {
-	return (A.x == B.x) && (A.y == B.y) && (A.width == B.width) && (A.height == B.height);
+	return (A.x == B.x) && (A.y == B.y) && (A.w == B.w) && (A.h == B.h);
 }
 
 // Overload of binary operator !=
 template <jlib::std_arithmetic T>
 bool operator != (const jlib::Rect<T>& A, const jlib::Rect<T>& B)
 {
-	return (A.x != B.x) || (A.y != B.y) || (A.width != B.width) || (A.height != B.height);
+	return (A.x != B.x) || (A.y != B.y) || (A.w != B.w) || (A.h != B.h);
 }
 
 // Overload of std::ostream operator <<
@@ -2384,6 +3467,7 @@ std::ostream& operator << (std::ostream& os, const jlib::Rect<T>& A)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// CIRCLE TEMPLATE CLASS                                                                         //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -2462,27 +3546,27 @@ namespace jlib
 		// Returns the circumference of the Circle.
 		float circumference() const
 		{
-			return 2.f * 3.1415927f * std::fabsf(radius);
+			return 2.0f * 3.1415927f * std::fabsf(radius);
 		}
 
 		// Returns the area of the Circle.
 		float area() const
 		{
-			return 3.1415927f * std::powf(std::fabsf(radius), 2.f);
+			return 3.1415927f * std::powf(std::fabsf(radius), 2.0f);
 		}
 
 		// Checks if the given point lies within or on the Circle.
 		template <std_arithmetic U>
 		bool contains(T X, T Y)
 		{
-			return std::powf(X - x, 2.f) + std::powf(Y - y, 2.f) <= std::powf(std::fabsf(radius), 2.f);
+			return std::powf(X - x, 2.f) + std::powf(Y - y, 2.0f) <= std::powf(std::fabsf(radius), 2.0f);
 		}
 
 		// Checks if the given point lies within or on the Circle.
 		template <std_arithmetic U>
 		bool contains(const Vector2<U>& P)
 		{
-			return std::powf(P.x - x, 2.f) + std::powf(P.y - y, 2.f) <= std::powf(std::fabsf(radius), 2.f);
+			return std::powf(P.x - x, 2.0f) + std::powf(P.y - y, 2.0f) <= std::powf(std::fabsf(radius), 2.0f);
 		}
 
 		// Returns a std::string representation of the Circle.
@@ -2496,7 +3580,7 @@ namespace jlib
 	template <std_arithmetic T>
 	bool intersection(const Circle<T>& A, const Circle<T>& B)
 	{
-		return std::powf(std::fabsf(A.radius) + std::fabsf(B.radius), 2.f) <= (std::powf(B.x - A.x, 2.f) + std::powf(B.y - A.y, 2.f));
+		return std::powf(std::fabsf(A.radius) + std::fabsf(B.radius), 2.0f) <= (std::powf(B.x - A.x, 2.0f) + std::powf(B.y - A.y, 2.0f));
 	}
 }
 
@@ -2738,633 +3822,7 @@ bool operator != (const jlib::LineSegment<T>& A, const jlib::LineSegment<T>& B)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace jlib
-{
-	// Utility template wrapper class for pointers.
-	// This class is NOT intended to be used for memory
-	// allocation, it is simply for pointing to objects.
-	template <typename T> class Ptr
-	{
-		T* _ptr;
-
-		public:
-
-		// Default constructor.
-		Ptr()
-		{
-			_ptr = nullptr;
-		}
-
-		// Value constructor.
-		Ptr(T* ptr)
-		{
-			_ptr = ptr;
-		}
-
-		// Copy constructor.
-		Ptr(Ptr& other) = default;
-
-		// Move constructor.
-		Ptr(Ptr&& other) noexcept
-		{
-			_ptr = other._ptr;
-			other._ptr = nullptr;
-		}
-
-		// Value assignment operator.
-		Ptr& operator = (T* ptr)
-		{
-			_ptr = ptr;
-			return *this;
-		}
-
-		// Copy assignment operator.
-		Ptr& operator = (Ptr& other) = default;
-
-		// Move assignment operator.
-		Ptr& operator = (Ptr&& other) noexcept
-		{
-			_ptr = other._ptr;
-			other._ptr = nullptr;
-			return *this;
-		}
-
-		// Destructor.
-		~Ptr() = default;
-
-		// Resets the pointer to nullptr.
-		void reset()
-		{
-			_ptr = nullptr;
-		}
-
-		// Returns the underlying raw-pointer.
-		T* get()
-		{
-			return _ptr;
-		}
-
-		// Returns the underlying raw-pointer.
-		const T* get() const
-		{
-			return _ptr;
-		}
-
-		// Dereference operator.
-		T& operator * ()
-		{
-			return *_ptr;
-		}
-
-		// Dereference operator.
-		const T& operator * () const
-		{
-			return *_ptr;
-		}
-
-		// Structure pointer dereference operator.
-		T* operator -> ()
-		{
-			return _ptr;
-		}
-
-		// Conversion operator to implicitly convert the pointer to its raw pointer type (T*).
-		operator T* () const
-		{
-			return static_cast<T*>(_ptr);
-		}
-
-		// Returns true if the Pointer != nullptr.
-		operator bool() const
-		{
-			return _ptr != nullptr;
-		}
-
-		// Overload of unary operator ++
-		Ptr& operator ++ ()
-		{
-			++_ptr;
-			return *this;
-		}
-
-		// Overload of unary operator ++
-		Ptr operator ++ (int)
-		{
-			Ptr p(*this);
-			++_ptr;
-			return p;
-		}
-
-		// Overload of unary operator --
-		Ptr& operator -- ()
-		{
-			--_ptr;
-			return *this;
-		}
-
-		// Overload of unary operator --
-		Ptr operator -- (int)
-		{
-			Ptr p(*this);
-			--_ptr;
-			return p;
-		}
-
-		// Overload of binary operator +
-		Ptr operator + (std::ptrdiff_t offset)
-		{
-			return Ptr(_ptr + offset);
-		}
-
-		// Overload of binary operator -
-		Ptr operator - (std::ptrdiff_t offset)
-		{
-			return Ptr(_ptr - offset);
-		}
-
-		// Overload of binary operator -
-		std::ptrdiff_t operator - (const Ptr& other)
-		{
-			return _ptr - other._ptr;
-		}
-
-		// Overload of binary operator -
-		std::ptrdiff_t operator - (const T* ptr)
-		{
-			return _ptr - ptr;
-		}
-
-		// Overload of binary operator +=
-		Ptr& operator += (std::ptrdiff_t offset)
-		{
-			_ptr += offset;
-			return *this;
-		}
-
-		// Overload of binary operator -=
-		Ptr& operator -= (std::ptrdiff_t offset)
-		{
-			_ptr -= offset;
-			return *this;
-		}
-
-		// Overload of binary operator ==
-		bool operator == (const Ptr& other)
-		{
-			return _ptr == other._ptr;
-		}
-
-		// Overload of binary operator ==
-		bool operator == (const T* ptr)
-		{
-			return _ptr == ptr;
-		}
-
-		// Overload of binary operator ==
-		bool operator == (std::nullptr_t)
-		{
-			return _ptr == nullptr;
-		}
-
-		// Overload of binary operator !=
-		bool operator != (const Ptr& other)
-		{
-			return _ptr != other._ptr;
-		}
-
-		// Overload of binary operator !=
-		bool operator != (const T* ptr)
-		{
-			return _ptr != ptr;
-		}
-
-		// Overload of binary operator !=
-		bool operator != (std::nullptr_t)
-		{
-			return _ptr != nullptr;
-		}
-
-		// Overload of binary operator <
-		bool operator < (const Ptr& other)
-		{
-			return _ptr < other._ptr;
-		}
-
-		// Overload of binary operator <
-		bool operator < (const T* ptr)
-		{
-			return _ptr < ptr;
-		}
-
-		// Overload of binary operator <=
-		bool operator <= (const Ptr& other)
-		{
-			return _ptr <= other._ptr;
-		}
-
-		// Overload of binary operator <=
-		bool operator <= (const T* ptr)
-		{
-			return _ptr <= ptr;
-		}
-
-		// Overload of binary operator >
-		bool operator > (const Ptr& other)
-		{
-			return _ptr > other._ptr;
-		}
-
-		// Overload of binary operator >
-		bool operator > (const T* ptr)
-		{
-			return _ptr > ptr;
-		}
-
-		// Overload of binary operator >=
-		bool operator >= (const Ptr& other)
-		{
-			return _ptr >= other._ptr;
-		}
-
-		// Overload of binary operator >=
-		bool operator >= (const T* ptr)
-		{
-			return _ptr >= ptr;
-		}
-
-		// Overload of binary operator <=>
-		std::strong_ordering operator <=> (const Ptr& other)
-		{
-			return _ptr <=> other._ptr;
-		}
-
-		// Overload of binary operator <=>
-		std::strong_ordering operator <=> (const T* ptr)
-		{
-			return _ptr <=> ptr;
-		}
-	};
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace jlib
-{
-	// 
-	template <std::semiregular T> class Array
-	{
-		public:
-
-		using value_type = T;
-		using size_type = std::size_t;
-		using difference_type = std::ptrdiff_t;
-		using pointer = T*;
-		using const_pointer = const T*;
-		using reference = T&;
-		using const_reference = const T&;
-		using iterator = T*;
-		using const_iterator = const T*;
-
-		private:
-
-		pointer _data;
-		size_type _size;
-
-		// 
-		void allocate(size_type size)
-		{
-			if (size == 0)
-			{
-				_data = nullptr;
-				_size = 0;
-			}
-			else
-			{
-				try
-				{
-					_data = new value_type[size];
-					_size = size;
-				}
-				catch (...)
-				{
-					_data = nullptr;
-					_size = 0;
-					throw;
-				}
-			}
-		}
-
-		// 
-		void reallocate(size_type size)
-		{
-			if (size != _size)
-			{
-				delete[] _data;
-				allocate(size);
-			}
-		}
-
-		public:
-
-		// Default constructor.
-		Array()
-		{
-			allocate(0);
-		}
-
-		// Size constructor.
-		Array(size_type size)
-		{
-			allocate(size);
-		}
-
-		// Size and value constructor.
-		Array(size_type size, const_reference value)
-		{
-			allocate(size);
-
-			for (size_type i(0); i < _size; ++i)
-				_data[i] = value;
-		}
-
-		// Constructs the Array with the contents in the range[begin, end).
-		// This DOES NOT move the contents from the given range, it simply
-		// copies its contents into the new Array.
-		Array(const_pointer begin, const_pointer end)
-		{
-			size_type size = end - begin;
-			allocate(size);
-			std::copy(begin, end, _data);
-		}
-
-		// std::initializer_list constructor.
-		Array(std::initializer_list<T> elems)
-		{
-			allocate(elems.size());
-			std::copy(elems.begin(), elems.end(), _data);
-		}
-
-		// Copy constructor.
-		Array(const Array& other)
-		{
-			allocate(other._size);
-			std::copy(other._data, other._data + _size, _data);
-		}
-
-		// Constructs the Array from another type of Array.
-		// This constructor doesn't replace the copy constructor,
-		// it's called only when U != T.
-		template <std::semiregular U>
-		explicit Array(const Array<U>& other)
-		{
-			allocate(other._size);
-
-			for (size_type i(0); i < _size; ++i)
-				_data[i] = static_cast<T>(other._data[i]);
-		}
-
-		// Move constructor.
-		Array(Array&& other) noexcept
-		{
-			_data = other._data;
-			_size = other._size;
-			other._data = nullptr;
-			other._size = 0;
-		}
-
-		// std::initializer_list assignment operator.
-		Array& operator = (std::initializer_list<T> elems)
-		{
-			reallocate(elems.size());
-			std::copy(elems.begin(), elems.end(), _data);
-			return *this;
-		}
-
-		// Copy assignment operator.
-		Array& operator = (const Array& other)
-		{
-			reallocate(other._size);
-			std::copy(other._data, other._data + _size, _data);
-			return *this;
-		}
-
-		// Move assignment operator.
-		Array& operator = (Array&& other) noexcept
-		{
-			delete[] _data;
-			_data = other._data;
-			_size = other._size;
-			other._data = nullptr;
-			other._size = 0;
-			return *this;
-		}
-
-		// Destructor.
-		~Array() noexcept
-		{
-			delete[] _data;
-		}
-
-		// Returns the size of the Array.
-		constexpr size_type size() const noexcept
-		{
-			return _size;
-		}
-
-		// Returns true if the Array is empty.
-		constexpr bool isEmpty() const noexcept
-		{
-			return _size != 0;
-		}
-
-		// Returns the underlying array pointer.
-		pointer data() noexcept
-		{
-			return _data;
-		}
-
-		// Returns the underlying array pointer.
-		const_pointer data() const noexcept
-		{
-			return _data;
-		}
-
-		// 
-		iterator begin() noexcept
-		{
-			return iterator(_data);
-		}
-
-		// 
-		const_iterator begin() const noexcept
-		{
-			return const_iterator(_data);
-		}
-
-		// 
-		const_iterator cbegin() const noexcept
-		{
-			return const_iterator(_data);
-		}
-
-		// 
-		iterator end() noexcept
-		{
-			return iterator(_data + _size);
-		}
-
-		// 
-		const_iterator end() const noexcept
-		{
-			return const_iterator(_data + _size);
-		}
-
-		// 
-		const_iterator cend() const noexcept
-		{
-			return const_iterator(_data + _size);
-		}
-
-		// Empties the Array.
-		void clear() noexcept
-		{
-			delete[] _data;
-			_size = 0;
-		}
-
-		// Swaps the contents of this Array buffer with those of another.
-		void swapWith(Array& other) noexcept
-		{
-			pointer this_data = _data;
-			size_type this_size = _size;
-
-			_data = other._data;
-			_size = other._size;
-
-			other._data = this_data;
-			other._size = this_size;
-		}
-
-		// Returns the first element of the Array.
-		// Throws a std::out_of_range if the Array is empty.
-		reference first()
-		{
-			if (_size == 0)
-				throw std::out_of_range("ERROR: Empty array.");
-
-			return _data[0];
-		}
-
-		// Returns the first element of the Array.
-		// Throws a std::out_of_range if the Array is empty.
-		const_reference first() const
-		{
-			if (_size == 0)
-				throw std::out_of_range("ERROR: Empty array.");
-
-			return _data[0];
-		}
-
-		// Returns the last element of the Array.
-		// Throws a std::out_of_range if the Array is empty.
-		reference last()
-		{
-			if (_size == 0)
-				throw std::out_of_range("ERROR: Empty array.");
-
-			return _data[_size - 1];
-		}
-
-		// Returns the last element of the Array.
-		// Throws a std::out_of_range if the Array is empty.
-		const_reference last() const
-		{
-			if (_size == 0)
-				throw std::out_of_range("ERROR: Empty array.");
-
-			return _data[_size - 1];
-		}
-
-		// Returns the element at the given index.
-		// Throws a std::out_of_range if given an invalid index.
-		reference at(size_type index)
-		{
-			if (index >= _size)
-				throw std::out_of_range("ERROR: Invalid array index.");
-
-			return _data[index];
-		}
-
-		// Returns the element at the given index.
-		// Throws a std::out_of_range if given an invalid index.
-		const_reference at(size_type index) const
-		{
-			if (index >= _size)
-				throw std::out_of_range("ERROR: Invalid array index.");
-
-			return _data[index];
-		}
-
-		// Sets the element at the given index to the given value.
-		// Throws a std::out_of_range if given an invalid index.
-		void set(size_type index, const_reference value)
-		{
-			if (index >= _size)
-				throw std::out_of_range("ERROR: Invalid array index.");
-
-			_data[index] = value;
-		}
-
-		// Returns the element at the given index.
-		reference operator [] (size_type index) noexcept
-		{
-			return _data[index];
-		}
-
-		// Returns the element at the given index.
-		const_reference operator [] (size_type index) const noexcept
-		{
-			return _data[index];
-		}
-	};
-}
-
-// Overload of binary operator ==
-template <std::regular T>
-bool operator == (const jlib::Array<T>& A, const jlib::Array<T>& B)
-{
-	if (A.size() != B.size())
-		return false;
-
-	for (std::size_t i = 0; i < A.size(); ++i)
-	{
-		if (A[i] != B[i])
-			return false;
-	}
-
-	return true;
-}
-
-// Overload of binary operator !=
-template <std::regular T>
-bool operator != (const jlib::Array<T>& A, const jlib::Array<T>& B)
-{
-	if (A.size() != B.size())
-		return true;
-
-	for (std::size_t i = 0; i < A.size(); ++i)
-	{
-		if (A[i] != B[i])
-			return true;
-	}
-
-	return false;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
+// MATRIX TEMPLATE CLASS                                                                         //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -3382,12 +3840,14 @@ namespace jlib
 		using value_type = T;
 		using size_type = std::size_t;
 		using difference_type = std::ptrdiff_t;
-		using reference = T&;
-		using const_reference = const T&;
-		using pointer = T*;
-		using const_pointer = const T*;
+		using reference = value_type&;
+		using const_reference = const value_type&;
+		using pointer = value_type*;
+		using const_pointer = const value_type*;
 		using iterator = Array<T>::iterator;
 		using const_iterator = Array<T>::const_iterator;
+		using reverse_iterator = Array<T>::reverse_iterator;
+		using const_reverse_iterator = Array<T>::const_reverse_iterator;
 
 		private:
 
@@ -3522,13 +3982,90 @@ namespace jlib
 		// Destructor.
 		~Matrix() = default;
 
+		// Returns the number of rows in the Matrix.
+		size_type rowCount() const noexcept
+		{
+			return _rows;
+		}
+
+		// Returns the number of columns in the Matrix.
+		size_type colCount() const noexcept
+		{
+			return _cols;
+		}
+
+		// Returns the number of elements in the Matrix.
+		size_type size() const noexcept
+		{
+			return _data.size();
+		}
+
+		// 
+		pointer data() noexcept
+		{
+			return _data.data();
+		}
+
+		// 
+		const_pointer data() const noexcept
+		{
+			return _data.data();
+		}
+
+		// 
+		iterator begin() noexcept
+		{
+			return _data.begin();
+		}
+
+		// 
+		const_iterator begin() const noexcept
+		{
+			return _data.cbegin();
+		}
+
+		// 
+		const_iterator cbegin() const noexcept
+		{
+			return _data.cbegin();
+		}
+
+		// 
+		iterator end() noexcept
+		{
+			return _data.end();
+		}
+
+		// 
+		const_iterator end() const noexcept
+		{
+			return _data.cend();
+		}
+
+		// 
+		const_iterator cend() const noexcept
+		{
+			return _data.cend();
+		}
+
+		// 
+		iterator rowBegin(size_type row) noexcept
+		{
+			return _data.begin() + (_cols * row);
+		}
+
+		// 
+		const_iterator rowBegin(size_type row) const noexcept
+		{
+			return _data.cbegin() + (_cols * row);
+		}
+
 		// Returns the nth element of the Matrix.
 		// Performs bounds-checking.
 		reference at(size_type n)
 		{
 			if (n >= _data.size())
-				throw std::out_of_range("Invalid table index");
-
+				throw std::out_of_range("ERROR: Invalid Matrix index.");
 			return _data[n];
 		}
 
@@ -3537,8 +4074,7 @@ namespace jlib
 		const_reference at(size_type n) const
 		{
 			if (n >= _data.size())
-				throw std::out_of_range("Invalid table index");
-
+				throw std::out_of_range("ERROR: Invalid Matrix index.");
 			return _data[n];
 		}
 
@@ -3547,9 +4083,9 @@ namespace jlib
 		reference at(size_type row, size_type col)
 		{
 			if (row >= _rows)
-				throw std::out_of_range("Invalid row index");
+				throw std::out_of_range("ERROR: Invalid row index.");
 			if (col >= _cols)
-				throw std::out_of_range("Invalid column index");
+				throw std::out_of_range("ERROR: Invalid column index.");
 
 			return _data[(row * _cols) + col];
 		}
@@ -3559,9 +4095,9 @@ namespace jlib
 		const_reference at(size_type row, size_type col) const
 		{
 			if (row >= _rows)
-				throw std::out_of_range("Invalid row index");
+				throw std::out_of_range("ERROR: Invalid row index.");
 			if (col >= _cols)
-				throw std::out_of_range("Invalid column index");
+				throw std::out_of_range("ERROR: Invalid column index.");
 
 			return _data[(row * _cols) + col];
 		}
@@ -3571,9 +4107,9 @@ namespace jlib
 		reference at(const Vector2<std::size_t>& pos)
 		{
 			if (pos.y >= _rows)
-				throw std::out_of_range("Invalid row index");
+				throw std::out_of_range("ERROR: Invalid row index.");
 			if (pos.x >= _cols)
-				throw std::out_of_range("Invalid column index");
+				throw std::out_of_range("ERROR: Invalid column index.");
 
 			return _data[(pos.y * _cols) + pos.x];
 		}
@@ -3583,9 +4119,9 @@ namespace jlib
 		const_reference at(const Vector2<size_type>& pos) const
 		{
 			if (pos.y >= _rows)
-				throw std::out_of_range("Invalid row index");
+				throw std::out_of_range("ERROR: Invalid row index.");
 			if (pos.x >= _cols)
-				throw std::out_of_range("Invalid column index");
+				throw std::out_of_range("ERROR: Invalid column index.");
 
 			return _data[(pos.y * _cols) + pos.x];
 		}
@@ -3595,8 +4131,7 @@ namespace jlib
 		void set(size_type n, const_reference value)
 		{
 			if (n >= _data.size())
-				throw std::out_of_range("Invalid table index");
-
+				throw std::out_of_range("ERROR: Invalid table index.");
 			_data[n] = value;
 		}
 
@@ -3605,9 +4140,9 @@ namespace jlib
 		void set(size_type row, size_type col, const_reference value)
 		{
 			if (row >= _rows)
-				throw std::out_of_range("Invalid row index");
+				throw std::out_of_range("ERROR: Invalid row index.");
 			if (col >= _cols)
-				throw std::out_of_range("Invalid column index");
+				throw std::out_of_range("ERROR: Invalid column index.");
 
 			_data[(row * _cols) + col] = value;
 		}
@@ -3617,11 +4152,49 @@ namespace jlib
 		void set(const Vector2<size_type>& pos, const_reference value)
 		{
 			if (pos.y >= _rows)
-				throw std::out_of_range("Invalid row index");
+				throw std::out_of_range("ERROR: Invalid row index.");
 			if (pos.x >= _cols)
-				throw std::out_of_range("Invalid column index");
+				throw std::out_of_range("ERROR: Invalid column index.");
 
 			_data[(pos.y * _cols) + pos.x] = value;
+		}
+
+		// 
+		void clear() noexcept
+		{
+			_data.clear();
+		}
+
+		// 
+		void resize(size_type rows, size_type cols)
+		{
+			reallocate(rows, cols);
+		}
+
+		// Returns a copy of the given row.
+		Array<T> getRow(size_type row) const
+		{
+			if (row >= _rows)
+				throw std::out_of_range("ERROR: Invalid row index.");
+
+			Array<T> arr;
+			for (size_type col_i(0); col_i < _cols; ++col_i)
+				arr[col_i] = _data[row][col_i];
+
+			return arr;
+		}
+
+		// Returns a copy of the given column.
+		Array<T> getCol(size_type col) const
+		{
+			if (col >= _cols)
+				throw std::out_of_range("ERROR: Invalid column index.");
+
+			Array<T> arr;
+			for (size_type row_i(0); row_i < _rows; ++row_i)
+				arr[row_i] = _data[row_i][col];
+
+			return arr;
 		}
 
 		// Returns the nth element of the Matrix.
@@ -3659,122 +4232,6 @@ namespace jlib
 		{
 			return _data[(pos.y * _cols) + pos.x];
 		}
-
-		// Returns the number of rows in the Matrix.
-		constexpr size_type rowCount() const noexcept
-		{
-			return _rows;
-		}
-
-		// Returns the number of columns in the Matrix.
-		constexpr size_type colCount() const noexcept
-		{
-			return _cols;
-		}
-
-		// Returns the number of elements in the Matrix.
-		constexpr size_type size() const noexcept
-		{
-			return _data.size();
-		}
-
-		// Returns a copy of the given row.
-		Array<T> getRow(size_type row) const
-		{
-			if (row >= _rows)
-				throw std::out_of_range("Invalid row index");
-
-			Array<T> arr;
-			for (size_type col_i(0); col_i < _cols; ++col_i)
-				arr[col_i] = _data[row][col_i];
-
-			return arr;
-		}
-
-		// Returns a copy of the given column.
-		Array<T> getCol(size_type col) const
-		{
-			if (col >= _cols)
-				throw std::out_of_range("Invalid column index");
-
-			Array<T> arr;
-			for (size_type row_i(0); row_i < _rows; ++row_i)
-				arr[row_i] = _data[row_i][col];
-
-			return arr;
-		}
-
-		// 
-		constexpr pointer data() noexcept
-		{
-			return _data.data();
-		}
-
-		// 
-		constexpr const_pointer data() const noexcept
-		{
-			return _data.data();
-		}
-
-		// 
-		constexpr iterator begin() noexcept
-		{
-			return _data.begin();
-		}
-
-		// 
-		constexpr const_iterator begin() const noexcept
-		{
-			return _data.cbegin();
-		}
-
-		// 
-		constexpr const_iterator cbegin() const noexcept
-		{
-			return _data.cbegin();
-		}
-
-		// 
-		constexpr iterator end() noexcept
-		{
-			return _data.end();
-		}
-
-		// 
-		constexpr const_iterator end() const noexcept
-		{
-			return _data.cend();
-		}
-
-		// 
-		constexpr const_iterator cend() const noexcept
-		{
-			return _data.cend();
-		}
-
-		// 
-		constexpr iterator rowBegin(size_type row) noexcept
-		{
-			return _data.begin() + (_cols * row);
-		}
-
-		// 
-		constexpr const_iterator rowBegin(size_type row) const noexcept
-		{
-			return _data.cbegin() + (_cols * row);
-		}
-
-		// 
-		constexpr void clear() noexcept
-		{
-			_data.clear();
-		}
-
-		// 
-		void resize(size_type rows, size_type cols)
-		{
-			reallocate(rows, cols);
-		}
 	};
 }
 
@@ -3811,6 +4268,7 @@ bool operator != (const jlib::Matrix<T>& A, const jlib::Matrix<T>& B)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// FIXEDMATRIX TEMPLATE CLASS                                                                    //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -3818,91 +4276,159 @@ namespace jlib
 	// Utility template class for representing and          
 	// computing matrices of varying sizes.
 	// 
-	// IMPORTANT NOTE: A CMatrix with dimensions R x C
+	// IMPORTANT NOTE: A FixedMatrix with dimensions R x C
 	// represents a Matrix with R rows and C columns.
 	// This seems a bit confusing to people who are
 	// used to X x Y coordinates, but this is consistent
 	// with how they are represented in mathematics.
-	template <std::semiregular T, std::size_t R, std::size_t C> class CMatrix
+	template <std::semiregular T, std::size_t R, std::size_t C> class FixedMatrix
 	{
 		public:
 
 		using value_type = T;
 		using size_type = std::size_t;
 		using difference_type = std::ptrdiff_t;
-		using reference = T&;
-		using const_reference = const T&;
-		using pointer = T*;
-		using const_pointer = const T*;
-		using iterator = std::array<T, R* C>::iterator;
-		using const_iterator = std::array<T, R* C>::const_iterator;
+		using reference = value_type&;
+		using const_reference = const value_type&;
+		using pointer = value_type*;
+		using const_pointer = const value_type*;
+		using iterator = FixedArray<T, R * C>::iterator;
+		using const_iterator = FixedArray<T, R* C>::const_iterator;
+		using reverse_iterator = FixedArray<T, R* C>::reverse_iterator;
+		using const_reverse_iterator = FixedArray<T, R* C>::const_reverse_iterator;
 
 		private:
 
-		std::array<T, R * C> _data;
+		FixedArray<T, R * C> _data;
 
 		public:
 
 		// Default constructor.
-		CMatrix() = default;
+		FixedMatrix() = default;
 
 		// 1-parameter constructor.
-		// Sets every element of the CMatrix to value.
-		CMatrix(const_reference value)
+		// Sets every element of the FixedMatrix to value.
+		FixedMatrix(const_reference value)
 		{
 			for (size_type i(0); i < R * C; ++i)
 				_data[i] = value;
 		}
 
 		// 2-dimensional std::initializer_list constructor.
-		CMatrix(std::initializer_list<std::initializer_list<T>> list)
+		FixedMatrix(std::initializer_list<std::initializer_list<T>> list)
 		{
 			size_type row_i = 0;
 
 			for (const auto& elem : list)
 			{
-				std::copy(elem.begin(), elem.begin() + C, &_data[row_i * C]);
+				std::copy(elem.begin(), elem.begin() + C, _data.begin() + (row_i * C));
 				++row_i;
 			}
 		}
 
-		// Copy constructor.
-		CMatrix(const CMatrix& other) = default;
-
-		// Constructs the CMatrix from another type of CMatrix.
+		// Constructs the FixedMatrix from another type of FixedMatrix.
 		// This constructor doesn't replace the copy constructor,
 		// it's called only when U != T.
 		template <std::semiregular U>
-		explicit CMatrix(const CMatrix<U, R, C>& other)
+		explicit FixedMatrix(const FixedMatrix<U, R, C>& other)
 		{
 			for (size_type i(0); i < R * C; ++i)
 				_data[i] = static_cast<T>(other._data[i]);
 		}
 
-		// Move constructor.
-		CMatrix(CMatrix&& other) = default;
-
 		// 2-dimensional std::initializer_list assignment operator.
-		CMatrix& operator = (std::initializer_list<std::initializer_list<T>> list)
+		FixedMatrix& operator = (std::initializer_list<std::initializer_list<T>> list)
 		{
 			size_type row_i = 0;
 
 			for (const auto& elem : list)
 			{
-				std::copy(elem.begin(), elem.begin() + C, &_data[row_i * C]);
+				std::copy(elem.begin(), elem.begin() + C, _data.begin() + (row_i * C));
 				++row_i;
 			}
 
 			return *this;
 		}
 
-		// Copy assignment operator.
-		CMatrix& operator = (const CMatrix& other) = default;
+		// Returns the number of rows in the FixedMatrix.
+		constexpr size_type rowCount() const noexcept
+		{
+			return R;
+		}
 
-		// Move assignment operator.
-		CMatrix& operator = (CMatrix&& other) = default;
+		// Returns the number of columns in the FixedMatrix.
+		constexpr size_type colCount() const noexcept
+		{
+			return C;
+		}
 
-		// Returns the nth element of the CMatrix.
+		// Returns the number of elements in the FixedMatrix.
+		constexpr size_type size() const noexcept
+		{
+			return R * C;
+		}
+
+		// 
+		pointer data()
+		{
+			return _data.data();
+		}
+
+		// 
+		const_pointer data() const
+		{
+			return _data.data();
+		}
+
+		// 
+		iterator begin()
+		{
+			return _data.begin();
+		}
+
+		// 
+		const_iterator begin() const
+		{
+			return _data.cbegin();
+		}
+
+		// 
+		const_iterator cbegin() const
+		{
+			return _data.cbegin();
+		}
+
+		// 
+		iterator end()
+		{
+			return _data.end();
+		}
+
+		// 
+		const_iterator end() const
+		{
+			return _data.cend();
+		}
+
+		// 
+		const_iterator cend() const
+		{
+			return _data.cend();
+		}
+
+		// 
+		iterator rowBegin(size_type row)
+		{
+			return _data.begin() + (C * row);
+		}
+
+		// 
+		const_iterator rowBegin(size_type row) const
+		{
+			return _data.cbegin() + (C * row);
+		}
+
+		// Returns the nth element of the FixedMatrix.
 		// Performs bounds-checking.
 		reference at(size_type n)
 		{
@@ -3912,7 +4438,7 @@ namespace jlib
 			return _data[n];
 		}
 
-		// Returns the nth element of the CMatrix.
+		// Returns the nth element of the FixedMatrix.
 		// Performs bounds-checking.
 		const_reference at(size_type n) const
 		{
@@ -3970,7 +4496,7 @@ namespace jlib
 			return _data[(pos.y * C) + pos.x];
 		}
 
-		// Sets the nth element of the CMatrix to value.
+		// Sets the nth element of the FixedMatrix to value.
 		// Performs bounds-checking.
 		void set(size_type n, const_reference value)
 		{
@@ -4004,60 +4530,6 @@ namespace jlib
 			_data[(pos.y * C) + pos.x] = value;
 		}
 
-		// Returns the nth element of the CMatrix.
-		reference operator [] (size_type n)
-		{
-			return _data[n];
-		}
-
-		// Returns the nth element of the CMatrix.
-		const_reference operator [] (size_type n) const
-		{
-			return _data[n];
-		}
-
-		// Returns the element at [row][col].
-		reference operator () (size_type row, size_type col)
-		{
-			return _data[(row * C) + col];
-		}
-
-		// Returns the element at [row][col].
-		const_reference operator () (size_type row, size_type col) const
-		{
-			return _data[(row * C) + col];
-		}
-
-		// Returns the element at [pos.y][pos.x].
-		reference operator () (const Vector2<size_type>& pos)
-		{
-			return _data[(pos.y * C) + pos.x];
-		}
-
-		// Returns the element at [pos.y][pos.x].
-		const_reference operator () (const Vector2<size_type>& pos) const
-		{
-			return _data[(pos.y * C) + pos.x];
-		}
-
-		// Returns the number of rows in the CMatrix.
-		size_type rowCount() const
-		{
-			return R;
-		}
-
-		// Returns the number of columns in the CMatrix.
-		size_type colCount() const
-		{
-			return C;
-		}
-
-		// Returns the number of elements in the CMatrix.
-		size_type size() const
-		{
-			return R * C;
-		}
-
 		// Returns a copy of the given row.
 		std::array<T, C> getRow(size_type row) const
 		{
@@ -4088,14 +4560,14 @@ namespace jlib
 
 		// Returns the submatrix formed by the row and col indices.
 		template <size_type R2, size_type C2>
-		CMatrix<T, R2, C2> submatrix(size_type row_begin, size_type col_begin) const
+		FixedMatrix<T, R2, C2> submatrix(size_type row_begin, size_type col_begin) const
 		{
 			if (row_begin >= R || row_begin + R2)
 				throw std::out_of_range("Invalid row index.");
 			if (col_begin >= C || col_begin + C >= C2)
 				throw std::out_of_range("Invalid column index.");
 
-			CMatrix<T, R2, C2> M;
+			FixedMatrix<T, R2, C2> M;
 
 			for (size_type row_i(0); row_i < R2; ++row_i)
 			{
@@ -4106,68 +4578,44 @@ namespace jlib
 			return M;
 		}
 
-		// 
-		pointer data()
+		// Returns the nth element of the FixedMatrix.
+		reference operator [] (size_type n)
 		{
-			return &(_data[0]);
+			return _data[n];
 		}
 
-		// 
-		const_pointer data() const
+		// Returns the nth element of the FixedMatrix.
+		const_reference operator [] (size_type n) const
 		{
-			return _data.data();
+			return _data[n];
 		}
 
-		// 
-		iterator begin()
+		// Returns the element at [row][col].
+		reference operator () (size_type row, size_type col)
 		{
-			return _data.begin();
+			return _data[(row * C) + col];
 		}
 
-		// 
-		const_iterator begin() const
+		// Returns the element at [row][col].
+		const_reference operator () (size_type row, size_type col) const
 		{
-			return _data.cbegin();
+			return _data[(row * C) + col];
 		}
 
-		// 
-		const_iterator cbegin() const
+		// Returns the element at [pos.y][pos.x].
+		reference operator () (const Vector2<size_type>& pos)
 		{
-			return _data.cbegin();
+			return _data[(pos.y * C) + pos.x];
 		}
 
-		// 
-		iterator end()
+		// Returns the element at [pos.y][pos.x].
+		const_reference operator () (const Vector2<size_type>& pos) const
 		{
-			return _data.end();
-		}
-
-		// 
-		const_iterator end() const
-		{
-			return _data.cend();
-		}
-
-		// 
-		const_iterator cend() const
-		{
-			return _data.cend();
-		}
-
-		// 
-		iterator rowBegin(size_type row)
-		{
-			return _data.begin() + (C * row);
-		}
-
-		// 
-		const_iterator rowBegin(size_type row) const
-		{
-			return _data.cbegin() + (C * row);
+			return _data[(pos.y * C) + pos.x];
 		}
 	};
 
-	// Returns the determinant of the 2x2 CMatrix formed as
+	// Returns the determinant of the 2x2 FixedMatrix formed as
 	// {  a,  b  }
 	// {  c,  d  }
 	template <std_arithmetic T>
@@ -4176,16 +4624,16 @@ namespace jlib
 		return (a * d) - (b * c);
 	}
 
-	// Returns the determinant of the 2x2 CMatrix.
+	// Returns the determinant of the 2x2 FixedMatrix.
 	template <std_arithmetic T>
-	inline T determinant(const CMatrix<T, 2, 2>& M)
+	inline T determinant(const FixedMatrix<T, 2, 2>& M)
 	{
 		return (M(0, 0) * M(1, 1)) - (M(1, 0) * M(0, 1));
 	}
 
-	// Returns the determinant of the 3x3 CMatrix.
+	// Returns the determinant of the 3x3 FixedMatrix.
 	template <std_arithmetic T>
-	T determinant(const CMatrix<T, 3, 3>& M)
+	T determinant(const FixedMatrix<T, 3, 3>& M)
 	{
 		T A = M(0, 0) * determinant(M(1, 1), M(1, 2), M(2, 1), M(2, 2));
 		T B = M(0, 1) * determinant(M(1, 0), M(1, 2), M(2, 0), M(2, 2));
@@ -4194,32 +4642,32 @@ namespace jlib
 		return A - B + C;
 	}
 
-	// Returns the determinant of the 4x4 CMatrix.
+	// Returns the determinant of the 4x4 FixedMatrix.
 	template <std_arithmetic T>
-	T determinant(const CMatrix<T, 4, 4>& M)
+	T determinant(const FixedMatrix<T, 4, 4>& M)
 	{
-		CMatrix<T, 3, 3> A =
+		FixedMatrix<T, 3, 3> A =
 		{
 			{ M(1, 1), M(1, 2), M(1, 3) },
 			{ M(2, 1), M(2, 2), M(2, 3) },
 			{ M(3, 1), M(3, 2), M(3, 3) }
 		};
 
-		CMatrix<T, 3, 3> B =
+		FixedMatrix<T, 3, 3> B =
 		{
 			{ M(1, 0), M(1, 2), M(1, 3) },
 			{ M(2, 0), M(2, 2), M(2, 3) },
 			{ M(3, 0), M(3, 2), M(3, 3) }
 		};
 
-		CMatrix<T, 3, 3> C =
+		FixedMatrix<T, 3, 3> C =
 		{
 			{ M(1, 0), M(1, 1), M(1, 3) },
 			{ M(2, 0), M(2, 1), M(2, 3) },
 			{ M(3, 0), M(3, 1), M(3, 3) }
 		};
 
-		CMatrix<T, 3, 3> D =
+		FixedMatrix<T, 3, 3> D =
 		{
 			{ M(1, 0), M(1, 1), M(1, 2) },
 			{ M(2, 0), M(2, 1), M(2, 2) },
@@ -4231,9 +4679,9 @@ namespace jlib
 
 	// Returns the dot product of the given Matrices.
 	template <std_arithmetic T, std::size_t R, std::size_t C, std::size_t S>
-	CMatrix<T, R, S> dot_product(const CMatrix<T, R, C>& A, const CMatrix<T, C, S>& B)
+	FixedMatrix<T, R, S> dot_product(const FixedMatrix<T, R, C>& A, const FixedMatrix<T, C, S>& B)
 	{
-		CMatrix<T, R, S> M;
+		FixedMatrix<T, R, S> M;
 		T value;
 
 		for (std::size_t r(0); r < R; ++r)
@@ -4258,7 +4706,7 @@ namespace jlib
 
 // Overload of binary operator == 
 template <std::regular T, std::size_t R, std::size_t C>
-bool operator == (const jlib::CMatrix<T, R, C>& A, const jlib::CMatrix<T, R, C>& B)
+bool operator == (const jlib::FixedMatrix<T, R, C>& A, const jlib::FixedMatrix<T, R, C>& B)
 {
 	for (std::size_t i(0); i < R * C; ++i)
 	{
@@ -4271,7 +4719,7 @@ bool operator == (const jlib::CMatrix<T, R, C>& A, const jlib::CMatrix<T, R, C>&
 
 // Overload of binary operator != 
 template <std::regular T, std::size_t R, std::size_t C>
-bool operator != (const jlib::CMatrix<T, R, C>& A, const jlib::CMatrix<T, R, C>& B)
+bool operator != (const jlib::FixedMatrix<T, R, C>& A, const jlib::FixedMatrix<T, R, C>& B)
 {
 	for (std::size_t i(0); i < R * C; ++i)
 	{
@@ -4284,9 +4732,9 @@ bool operator != (const jlib::CMatrix<T, R, C>& A, const jlib::CMatrix<T, R, C>&
 
 // Overload of unary operator -
 template <jlib::std_arithmetic T, std::size_t R, std::size_t C>
-jlib::CMatrix<T, R, C> operator - (const jlib::CMatrix<T, R, C>& A)
+jlib::FixedMatrix<T, R, C> operator - (const jlib::FixedMatrix<T, R, C>& A)
 {
-	jlib::CMatrix<T, R, C> M;
+	jlib::FixedMatrix<T, R, C> M;
 
 	for (std::size_t row_i(0); row_i < R; ++row_i)
 	{
@@ -4299,9 +4747,9 @@ jlib::CMatrix<T, R, C> operator - (const jlib::CMatrix<T, R, C>& A)
 
 // Overload of binary operator +
 template <jlib::std_arithmetic T, std::size_t R, std::size_t C>
-jlib::CMatrix<T, R, C> operator + (const jlib::CMatrix<T, R, C>& A, const jlib::CMatrix<T, R, C>& B)
+jlib::FixedMatrix<T, R, C> operator + (const jlib::FixedMatrix<T, R, C>& A, const jlib::FixedMatrix<T, R, C>& B)
 {
-	jlib::CMatrix<T, R, C> M;
+	jlib::FixedMatrix<T, R, C> M;
 
 	for (std::size_t row_i(0); row_i < R; ++row_i)
 	{
@@ -4314,9 +4762,9 @@ jlib::CMatrix<T, R, C> operator + (const jlib::CMatrix<T, R, C>& A, const jlib::
 
 // Overload of binary operator -
 template <jlib::std_arithmetic T, std::size_t R, std::size_t C>
-jlib::CMatrix<T, R, C> operator - (const jlib::CMatrix<T, R, C>& A, const jlib::CMatrix<T, R, C>& B)
+jlib::FixedMatrix<T, R, C> operator - (const jlib::FixedMatrix<T, R, C>& A, const jlib::FixedMatrix<T, R, C>& B)
 {
-	jlib::CMatrix<T, C, R> M;
+	jlib::FixedMatrix<T, C, R> M;
 
 	for (std::size_t row_i(0); row_i < R; ++row_i)
 	{
@@ -4329,9 +4777,9 @@ jlib::CMatrix<T, R, C> operator - (const jlib::CMatrix<T, R, C>& A, const jlib::
 
 // Overload of binary operator *
 template <jlib::std_arithmetic T, jlib::std_arithmetic U, std::size_t R, std::size_t C>
-jlib::CMatrix<T, R, C> operator * (const jlib::CMatrix<T, R, C>& A, U scalar)
+jlib::FixedMatrix<T, R, C> operator * (const jlib::FixedMatrix<T, R, C>& A, U scalar)
 {
-	jlib::CMatrix<T, C, R> M;
+	jlib::FixedMatrix<T, C, R> M;
 
 	for (std::size_t row_i(0); row_i < R; ++row_i)
 	{
@@ -4344,9 +4792,9 @@ jlib::CMatrix<T, R, C> operator * (const jlib::CMatrix<T, R, C>& A, U scalar)
 
 // Overload of binary operator /
 template <jlib::std_arithmetic T, jlib::std_arithmetic U, std::size_t R, std::size_t C>
-jlib::CMatrix<T, R, C> operator / (const jlib::CMatrix<T, R, C>& A, U scalar)
+jlib::FixedMatrix<T, R, C> operator / (const jlib::FixedMatrix<T, R, C>& A, U scalar)
 {
-	jlib::CMatrix<T, C, R> M;
+	jlib::FixedMatrix<T, C, R> M;
 
 	for (std::size_t row_i(0); row_i < R; ++row_i)
 	{
@@ -4359,7 +4807,7 @@ jlib::CMatrix<T, R, C> operator / (const jlib::CMatrix<T, R, C>& A, U scalar)
 
 // Overload of binary operator +=
 template <jlib::std_arithmetic T, std::size_t R, std::size_t C>
-jlib::CMatrix<T, R, C>& operator += (jlib::CMatrix<T, R, C>& A, const jlib::CMatrix<T, R, C>& B)
+jlib::FixedMatrix<T, R, C>& operator += (jlib::FixedMatrix<T, R, C>& A, const jlib::FixedMatrix<T, R, C>& B)
 {
 	for (std::size_t row_i(0); row_i < R; ++row_i)
 	{
@@ -4372,7 +4820,7 @@ jlib::CMatrix<T, R, C>& operator += (jlib::CMatrix<T, R, C>& A, const jlib::CMat
 
 // Overload of binary operator -=
 template <jlib::std_arithmetic T, std::size_t R, std::size_t C>
-jlib::CMatrix<T, R, C>& operator -= (jlib::CMatrix<T, R, C>& A, const jlib::CMatrix<T, R, C>& B)
+jlib::FixedMatrix<T, R, C>& operator -= (jlib::FixedMatrix<T, R, C>& A, const jlib::FixedMatrix<T, R, C>& B)
 {
 	for (std::size_t row_i(0); row_i < R; ++row_i)
 	{
@@ -4385,7 +4833,7 @@ jlib::CMatrix<T, R, C>& operator -= (jlib::CMatrix<T, R, C>& A, const jlib::CMat
 
 // Overload of binary operator *=
 template <jlib::std_arithmetic T, jlib::std_arithmetic U, std::size_t R, std::size_t C>
-jlib::CMatrix<T, R, C>& operator *= (jlib::CMatrix<T, R, C>& M, U scalar)
+jlib::FixedMatrix<T, R, C>& operator *= (jlib::FixedMatrix<T, R, C>& M, U scalar)
 {
 	for (std::size_t row_i(0); row_i < R; ++row_i)
 	{
@@ -4398,7 +4846,7 @@ jlib::CMatrix<T, R, C>& operator *= (jlib::CMatrix<T, R, C>& M, U scalar)
 
 // Overload of binary operator /=
 template <jlib::std_arithmetic T, jlib::std_arithmetic U, std::size_t R, std::size_t C>
-jlib::CMatrix<T, R, C>& operator /= (jlib::CMatrix<T, R, C>& M, U scalar)
+jlib::FixedMatrix<T, R, C>& operator /= (jlib::FixedMatrix<T, R, C>& M, U scalar)
 {
 	for (std::size_t row_i(0); row_i < R; ++row_i)
 	{
@@ -4407,171 +4855,6 @@ jlib::CMatrix<T, R, C>& operator /= (jlib::CMatrix<T, R, C>& M, U scalar)
 	}
 
 	return M;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace jlib
-{
-	class Keyboard
-    {
-        public:
-
-        enum Key : u8
-        {
-			NONE       = 0,
-			A          = 1, 
-			B          = 2, 
-			C          = 3, 
-			D          = 4, 
-			E          = 5, 
-			F          = 6, 
-			G          = 7, 
-			H          = 8, 
-			I          = 9, 
-			J          = 10, 
-			K          = 11,
-			L          = 12, 
-			M          = 13, 
-			N          = 14, 
-			O          = 15,
-			P          = 16, 
-			Q          = 17, 
-			R          = 18, 
-			S          = 19, 
-			T          = 20, 
-			U          = 21, 
-			V          = 22, 
-			W          = 23,
-			X          = 24, 
-			Y          = 25, 
-			Z          = 26,
-			Num0       = 27,
-			Num1       = 28,
-			Num2       = 29,
-			Num3       = 30,
-			Num4       = 31,
-			Num5       = 32,
-			Num6       = 33,
-			Num7       = 34,
-			Num8       = 35,
-			Num9       = 36,
-			F1         = 37, 
-			F2         = 38, 
-			F3         = 39, 
-			F4         = 40, 
-			F5         = 41, 
-			F6         = 42, 
-			F7         = 43, 
-			F8         = 44, 
-			F9         = 45, 
-			F10        = 46, 
-			F11        = 47, 
-			F12        = 48,
-			F13        = 49,
-			F14        = 50,
-			F15        = 51,
-			Escape     = 52,
-			LControl   = 53,
-			LShift     = 54,
-			LAlt       = 55,
-			LWindow    = 56,
-			RControl   = 57,
-			RShift     = 58,
-			RAlt       = 59,
-			RWindow    = 60,
-			Menu       = 61,
-			LBracket   = 62,
-			RBracket   = 63,
-			Semicolon  = 64,
-			Comma      = 65,
-			Period     = 66,
-			Quote      = 67,
-			Slash      = 68,
-			Backslash  = 69,
-			Tilde      = 70,
-			Equal      = 71,
-			Hyphen     = 72,
-			Space      = 73,
-			Enter      = 74,
-			Backspace  = 75,
-			Tab        = 76,
-			PageUp     = 77,
-			PageDown   = 78,
-			End        = 79,
-			Home       = 80,
-			Insert     = 81,
-			Delete     = 82,
-			Add        = 83,
-			Subtract   = 84,
-			Multiply   = 85,
-			Divide     = 86,
-			Left       = 87,
-			Right      = 88,
-			Up         = 89,
-			Down       = 90,
-			Numpad0    = 91,
-			Numpad1    = 92,
-			Numpad2    = 93,
-			Numpad3    = 94,
-			Numpad4    = 95,
-			Numpad5    = 96,
-			Numpad6    = 97,
-			Numpad7    = 98,
-			Numpad8    = 99,
-			Numpad9    = 100,
-			Pause      = 101,
-			Count      = 102
-		};
-
-		// 
-		static bool isKeyPressed(Key key);
-	};
-}	
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace jlib
-{
-	class Mouse
-	{
-		static bool _isVisible;
-
-		public:
-
-		enum Button : u8
-		{
-			Left   = 0,
-			Right  = 1,
-			Middle = 2
-		};
-
-		enum Wheel : u8
-		{
-			Vertical   = 0,
-			Horizontal = 1
-		};
-
-		//
-		static bool isCursorVisible();
-
-		// 
-		static void hide();
-
-		// 
-		static void show();
-
-		// 
-		static bool isButtonPressed(Button button);
-
-		// 
-		static Vector2i getPosition();
-
-		// 
-		static void setPosition(const Vector2i& pos);
-	};
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4632,6 +4915,7 @@ namespace jlib
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -4720,38 +5004,7 @@ bool operator == (const jlib::Gamepad& A, const jlib::Gamepad& B);
 bool operator != (const jlib::Gamepad& A, const jlib::Gamepad& B);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-namespace jlib
-{
-	// Gives access to the system clipboard.
-	class Clipboard
-	{
-		public:
-
-		// Gets the content of the clipboard as std::string data.
-		// This function returns the content of the clipboard
-		// as a string. If the clipboard does not contain string
-		// it returns an empty std::string object.
-		static std::string getString();
-
-		// Gets the content of the clipboard as std::wstring data.
-		// This function returns the content of the clipboard
-		// as a string. If the clipboard does not contain string
-		// it returns an empty std::wstring object.
-		static std::wstring getWideString();
-
-		// Sets the content of the clipboard as std::string data.
-		// This function sets the content of the clipboard as a std::string.
-		static void setString(const std::string& text);
-
-		// Sets the content of the clipboard as std::wstring data.
-		// This function sets the content of the clipboard as a std::wstring.
-		static void setWideString(const std::wstring& text);
-	};
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
+// 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -4804,6 +5057,7 @@ namespace jlib
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// COLOR CLASS                                                                                   //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace jlib
@@ -4835,14 +5089,6 @@ namespace jlib
 			Clear     = 0x00000000
 		};
 
-		enum Mode
-		{
-			Normal = 0,
-			Mask   = 1,
-			Alpha  = 2,
-			Custom = 3
-		};
-
 		u8 r, g, b, a;
 
 		// Default constructor.
@@ -4861,12 +5107,12 @@ namespace jlib
 		// this color to the corresponding values.
 		Color(u32 color);
 
-		// std::array constructor.
+		// FixedArray constructor.
 		// Sets the red component of the Color to the 1st element.
 		// Sets the green component of the Color to the 2nd element.
 		// Sets the blue component of the Color to the 3rd element.
 		// Sets the alpha component of the Color to the 4th element.
-		Color(const std::array<u8, 4>& arr);
+		Color(const FixedArray<u8, 4>& arr);
 
 		// std::initializer_list constructor.
 		// Sets the red component of the Color to the 1st element.
@@ -4875,17 +5121,26 @@ namespace jlib
 		// Sets the alpha component of the Color to the 4th element.
 		Color(std::initializer_list<u8> list);
 
+		// Default copy constructor.
+		Color(const Color& other) = default;
+
+		// Default move constructor.
+		Color(Color&& other) = default;
+
+		// Constructs the Color from a sf::Color.
+		Color(const sf::Color& other);
+
 		// unsigned int assignment operator.
 		// Calculates each byte of the given color and sets
 		// this color to the corresponding values.
 		Color& operator = (u32 color);
 
-		// std::array assignment operator.
+		// FixedArray assignment operator.
 		// Sets the red component of the Color to the 1st element.
 		// Sets the green component of the Color to the 2nd element.
 		// Sets the blue component of the Color to the 3rd element.
 		// Sets the alpha component of the Color to the 4th element.
-		Color& operator = (const std::array<u8, 4>& arr);
+		Color& operator = (const FixedArray<u8, 4>& arr);
 
 		// std::initializer_list assignment operator.
 		// Sets the red component of the Color to the 1st element.
@@ -4893,6 +5148,18 @@ namespace jlib
 		// Sets the blue component of the Color to the 3rd element.
 		// Sets the alpha component of the Color to the 4th element.
 		Color& operator = (std::initializer_list<u8> list);
+
+		// Default copy assignment operator.
+		Color& operator = (const Color& other) = default;
+
+		// Default move assignment operator.
+		Color& operator = (Color&& other) = default;
+
+		// Assigns the Color's values from a sf::Color.
+		Color& operator = (const sf::Color& other);
+
+		// Destructor.
+		~Color() = default;
 
 		// Sets all the values of the Color at once.
 		// Sets the red component of the Color to R.
@@ -4910,20 +5177,23 @@ namespace jlib
 		// Sets the green component of the Color to the 2nd element.
 		// Sets the blue component of the Color to the 3rd element.
 		// Sets the alpha component of the Color to the 4th element.
-		void set(const std::array<u8, 4>& arr);
+		void set(const FixedArray<u8, 4>& arr);
 
 		// Returns a 32-but unsigned integer representation of the Color.
 		u32 toInt() const;
 
 		// Returns a std::array copy of the Color's components.
-		std::array<u8, 4> toArray() const;
+		FixedArray<u8, 4> toArray() const;
+
+		// Returns a sf::Color copy of the Color.
+		sf::Color toSFML() const;
 
 		// Returns a std::string representation of the Color.
 		std::string toString() const;
 	};
 
 	// Returns the individual bytes of the unsigned int.
-	std::array<u8, 4> to_bytes(u32 i);
+	FixedArray<u8, 4> to_bytes(u32 i);
 
 	// Returns a hexadecimal std::string representation of the byte.
 	std::string to_hex_str(u8 byte);
@@ -4964,3 +5234,7 @@ jlib::Color& operator /= (jlib::Color& A, float f);
 
 // Overload of std::ostream operator <<
 std::ostream& operator << (std::ostream& os, const jlib::Color& A);
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                               //
+///////////////////////////////////////////////////////////////////////////////////////////////////

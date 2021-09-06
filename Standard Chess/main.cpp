@@ -1,11 +1,8 @@
 // Standard Chess
 // main.cpp
 // Created on 2021-08-18 by Justyn Durnford
-// Last modified on 2021-08-21 by Justyn Durnford
+// Last modified on 2021-09-04 by Justyn Durnford
 // Main source file for the Standard Chess project.
-
-#include <array>
-using std::array;
 
 #include <bitset>
 using std::bitset;
@@ -19,6 +16,7 @@ using std::endl;
 
 #include <string>
 using std::string;
+using std::to_string;
 
 #include <utility>
 using std::move;
@@ -37,19 +35,15 @@ using sf::Texture;
 using sf::VideoMode;
 
 #include "JLIB.hpp"
-using jlib::CMatrix;
+using jlib::FixedMatrix;
 using jlib::u8;
 using jlib::Vector2i;
 using jlib::Vector2uc;
 using namespace jlib;
 
-#include "Convert.hpp"
+#include "Piece.hpp"
 
-class Piece;
-
-CMatrix<Piece*, 8, 8> board;
-
-bool loadTextures(array<Texture, 15>& textures)
+bool loadTextures()
 {
 	if (!textures[0].loadFromFile("textures/board.png"))
 		return false;
@@ -85,123 +79,51 @@ bool loadTextures(array<Texture, 15>& textures)
 	return true;
 }
 
-class Piece
-{
-	public:
-
-	enum : u8
-	{
-		NoPiece     =  0,
-		WhitePawn   =  1,
-		WhiteBishop =  2,
-		WhiteKnight =  3,
-		WhiteRook   =  4,
-		WhiteQueen  =  5,
-		WhiteKing   =  6,
-		BlackPawn   =  7,
-		BlackBishop =  8,
-		BlackKnight =  9,
-		BlackRook   = 10,
-		BlackQueen  = 11,
-		BlackKing   = 12
-	};
-
-	private:
-
-	u8 _id;
-	string _name;
-	Vector2i _boardPos;
-	Sprite _spr;
-	vector<u8> _validMoves;
-
-	public:
-
-	Piece()
-	{
-		_id = 0;
-	}
-
-	Piece(u8 id, const string& name, const Vector2i& boardPos, Texture& texture)
-	{
-		_id = id;
-		_name = name;
-		_boardPos = boardPos;
-		_spr.setTexture(texture);
-	}
-
-	u8 getID() const
-	{
-		return _id;
-	}
-
-	void setID(u8 id)
-	{
-		_id = id;
-	}
-
-	const string& getName() const
-	{
-		return _name;
-	}
-
-	void setName(const string& name)
-	{
-		_name = name;
-	}
-
-	const Vector2i& getBoardPosition() const
-	{
-		return _boardPos;
-	}
-
-	void setBoardPosition(const Vector2i& boardPos)
-	{
-		_boardPos = boardPos;
-		_validMoves.clear();
-
-		// Update valid moves.
-		switch (_id)
-		{
-			case WhitePawn:
-
-				if (_boardPos.y == 6) // Can move 2 spaces forwards.
-				{
-
-				}
-
-				break;
-
-			default: break;
-		}
-	}
-
-	Sprite& getSprite()
-	{
-		return _spr;
-	}
-
-	void setSprite(Sprite& spr)
-	{
-		_spr = spr;
-	}
-
-	const vector<u8>& getValidMoves() const
-	{
-		return _validMoves;
-	}
-
-	bool canMoveTo(const Vector2i& boardPos) const
-	{
-		return true;
-	}
-};
-
 // Flags:
 // - flags[0]: Is it Whites's turn?
 // - flags[1]: Is White in check?
 // - flags[2]: Is Black in check?
 // - flags[3]: Is player moving a piece?
 bitset<4> flags;
+
+FixedArray<string, 8> to_string(const FixedMatrix<Piece*, 8, 8>& board)
+{
+	FixedArray<string, 8> arr;
+
+	for (size_t row_i = 0; row_i < 8; ++row_i)
+	{
+		arr[row_i].reserve(27);
+		arr[row_i] += "{ ";
+
+		for (size_t col_i = 0; col_i < 7; ++col_i)
+		{
+			if (board(row_i, col_i) == nullptr)
+				arr[row_i] += "00";
+			else
+			{
+				if (board(row_i, col_i)->getID() < 10)
+					arr[row_i] += "0" + to_string(board(row_i, col_i)->getID());
+				else
+					arr[row_i] += to_string(board(row_i, col_i)->getID());
+			}
+
+			arr[row_i] += " ";
+		}
+
+		if (board(row_i, 7) == nullptr)
+			arr[row_i] += "00";
+		else
+		{
+			if (board(row_i, 7)->getID() < 10)
+				arr[row_i] += "0" + to_string(board(row_i, 7)->getID());
+			else
+				arr[row_i] += to_string(board(row_i, 7)->getID());
+		}
+		arr[row_i] += " }";
+	}
+
+	return arr;
+}
 
 int main()
 {
@@ -211,44 +133,65 @@ int main()
 	if (!font.loadFromFile("textures/arial.ttf"))
 		return -1;
 
-	string mouse_pos_str;
-	Text mouse_pos_text;
-	mouse_pos_text.setFont(font);
-	mouse_pos_text.setCharacterSize(36);
-	mouse_pos_text.setFillColor(create_from(jlib::Color::Yellow));
-	mouse_pos_text.setOutlineColor(create_from(jlib::Color::Black));
-	mouse_pos_text.setOutlineThickness(3.0f);
+	#ifdef _DEBUG
 
-	string board_pos_str;
-	Text board_pos_text;
-	board_pos_text.setPosition(0.0f, 36.0f);
-	board_pos_text.setFont(font);
-	board_pos_text.setCharacterSize(36);
-	board_pos_text.setFillColor(create_from(jlib::Color::Yellow));
-	board_pos_text.setOutlineColor(create_from(jlib::Color::Black));
-	board_pos_text.setOutlineThickness(3.0f);
+		string mouse_pos_str;
+		Text mouse_pos_text;
+		mouse_pos_text.setFont(font);
+		mouse_pos_text.setCharacterSize(36);
+		mouse_pos_text.setFillColor(sf::Color(jlib::Color::Yellow));
+		mouse_pos_text.setOutlineColor(sf::Color(jlib::Color::Black));
+		mouse_pos_text.setOutlineThickness(3.0f);
 
-	string flags_str;
-	Text flags_text;
-	flags_text.setPosition(0.0f, 72.0f);
-	flags_text.setFont(font);
-	flags_text.setCharacterSize(36);
-	flags_text.setFillColor(create_from(jlib::Color::Yellow));
-	flags_text.setOutlineColor(create_from(jlib::Color::Black));
-	flags_text.setOutlineThickness(3.0f);
+		string board_pos_str;
+		Text board_pos_text;
+		board_pos_text.setPosition(0.0f, 36.0f);
+		board_pos_text.setFont(font);
+		board_pos_text.setCharacterSize(36);
+		board_pos_text.setFillColor(sf::Color(jlib::Color::Yellow));
+		board_pos_text.setOutlineColor(sf::Color(jlib::Color::Black));
+		board_pos_text.setOutlineThickness(3.0f);
 
-	string moving_piece_str;
-	Text moving_piece_text;
-	moving_piece_text.setPosition(0.0f, 108.0f);
-	moving_piece_text.setFont(font);
-	moving_piece_text.setCharacterSize(36);
-	moving_piece_text.setFillColor(create_from(jlib::Color::Yellow));
-	moving_piece_text.setOutlineColor(create_from(jlib::Color::Black));
-	moving_piece_text.setOutlineThickness(3.0f);
+		string flags_str;
+		Text flags_text;
+		flags_text.setPosition(0.0f, 72.0f);
+		flags_text.setFont(font);
+		flags_text.setCharacterSize(36);
+		flags_text.setFillColor(sf::Color(jlib::Color::Yellow));
+		flags_text.setOutlineColor(sf::Color(jlib::Color::Black));
+		flags_text.setOutlineThickness(3.0f);
 
-	// Load textures.
-	array<Texture, 15> textures;
-	if (!loadTextures(textures))
+		string piece_str;
+		Text piece_text;
+		piece_text.setPosition(0.0f, 108.0f);
+		piece_text.setFont(font);
+		piece_text.setCharacterSize(36);
+		piece_text.setFillColor(sf::Color(jlib::Color::Yellow));
+		piece_text.setOutlineColor(sf::Color(jlib::Color::Black));
+		piece_text.setOutlineThickness(3.0f);
+
+		FixedArray<string, 8> board_strs;
+
+		Texture red_square_texture;
+		if (!red_square_texture.loadFromFile("textures/red_square.png"))
+			return -1;
+
+		FixedMatrix<Sprite, 8, 8> red_square_sprites;
+
+		for (size_t row_i = 0; row_i < 8; ++row_i)
+		{
+			for (size_t col_i = 0; col_i < 8; ++col_i)
+			{
+				red_square_sprites(row_i, col_i).setTexture(red_square_texture);
+				red_square_sprites(row_i, col_i).setPosition(row_i * 100.0f, col_i * 100.0f);
+			}
+		}
+
+		bool has_board_changed = false;
+
+	#endif // #ifdef _DEBUG
+
+	if (!loadTextures())
 		return -1;
 
 	// Set board sprite.
@@ -325,41 +268,6 @@ int main()
 	blackQueen.getSprite().setScale(0.78125f, 0.78125f);
 	blackKing.getSprite().setScale(0.78125f, 0.78125f);
 
-	// Set Piece positions.
-	whitePawnA.getSprite().setPosition(0.0f, 600.0f);
-	whitePawnB.getSprite().setPosition(100.0f, 600.0f);
-	whitePawnC.getSprite().setPosition(200.0f, 600.0f);
-	whitePawnD.getSprite().setPosition(300.0f, 600.0f);
-	whitePawnE.getSprite().setPosition(400.0f, 600.0f);
-	whitePawnF.getSprite().setPosition(500.0f, 600.0f);
-	whitePawnG.getSprite().setPosition(600.0f, 600.0f);
-	whitePawnH.getSprite().setPosition(700.0f, 600.0f);
-	whiteBishopC.getSprite().setPosition(200.0f, 700.0f);
-	whiteBishopF.getSprite().setPosition(500.0f, 700.0f);
-	whiteKnightB.getSprite().setPosition(100.0f, 700.0f);
-	whiteKnightG.getSprite().setPosition(600.0f, 700.0f);
-	whiteRookA.getSprite().setPosition(0.0f, 700.0f);
-	whiteRookH.getSprite().setPosition(700.0f, 700.0f);
-	whiteQueen.getSprite().setPosition(300.0f, 700.0f);
-	whiteKing.getSprite().setPosition(400.0f, 700.0f);
-
-	blackPawnA.getSprite().setPosition(0.0f, 100.0f);
-	blackPawnB.getSprite().setPosition(100.0f, 100.0f);
-	blackPawnC.getSprite().setPosition(200.0f, 100.0f);
-	blackPawnD.getSprite().setPosition(300.0f, 100.0f);
-	blackPawnE.getSprite().setPosition(400.0f, 100.0f);
-	blackPawnF.getSprite().setPosition(500.0f, 100.0f);
-	blackPawnG.getSprite().setPosition(600.0f, 100.0f);
-	blackPawnH.getSprite().setPosition(700.0f, 100.0f);
-	blackBishopC.getSprite().setPosition(200.0f, 0.0f);
-	blackBishopF.getSprite().setPosition(500.0f, 0.0f);
-	blackKnightB.getSprite().setPosition(100.0f, 0.0f);
-	blackKnightG.getSprite().setPosition(600.0f, 0.0f);
-	blackRookA.getSprite().setPosition(0.0f, 0.0f);
-	blackRookH.getSprite().setPosition(700.0f, 0.0f);
-	blackQueen.getSprite().setPosition(300.0f, 0.0f);
-	blackKing.getSprite().setPosition(400.0f, 0.0f);
-
 	// Setup board.
 	board(0, 0) = &blackRookA;
 	board(0, 1) = &blackKnightB;
@@ -394,11 +302,83 @@ int main()
 	board(7, 6) = &whiteKnightG;
 	board(7, 7) = &whiteRookH;
 
-	for (size_t i = 16; i < 48; ++i)
-		board[i] = nullptr;
+	for (size_t row_i = 2; row_i < 6; ++row_i)
+	{
+		for (size_t col_i = 0; col_i < 8; ++col_i)
+			board(row_i, col_i) = nullptr;
+	}
+
+	// Set Piece board positions.
+	board(0, 0)->setBoardPosition(Vector2i(0, 0));
+	board(0, 1)->setBoardPosition(Vector2i(1, 0));
+	board(0, 2)->setBoardPosition(Vector2i(2, 0));
+	board(0, 3)->setBoardPosition(Vector2i(3, 0));
+	board(0, 4)->setBoardPosition(Vector2i(4, 0));
+	board(0, 5)->setBoardPosition(Vector2i(5, 0));
+	board(0, 6)->setBoardPosition(Vector2i(6, 0));
+	board(0, 7)->setBoardPosition(Vector2i(7, 0));
+	board(1, 0)->setBoardPosition(Vector2i(0, 1));
+	board(1, 1)->setBoardPosition(Vector2i(1, 1));
+	board(1, 2)->setBoardPosition(Vector2i(2, 1));
+	board(1, 3)->setBoardPosition(Vector2i(3, 1));
+	board(1, 4)->setBoardPosition(Vector2i(4, 1));
+	board(1, 5)->setBoardPosition(Vector2i(5, 1));
+	board(1, 6)->setBoardPosition(Vector2i(6, 1));
+	board(1, 7)->setBoardPosition(Vector2i(7, 1));
+	board(6, 0)->setBoardPosition(Vector2i(0, 6));
+	board(6, 1)->setBoardPosition(Vector2i(1, 6));
+	board(6, 2)->setBoardPosition(Vector2i(2, 6));
+	board(6, 3)->setBoardPosition(Vector2i(3, 6));
+	board(6, 4)->setBoardPosition(Vector2i(4, 6));
+	board(6, 5)->setBoardPosition(Vector2i(5, 6));
+	board(6, 6)->setBoardPosition(Vector2i(6, 6));
+	board(6, 7)->setBoardPosition(Vector2i(7, 6));
+	board(7, 0)->setBoardPosition(Vector2i(0, 7));
+	board(7, 1)->setBoardPosition(Vector2i(1, 7));
+	board(7, 2)->setBoardPosition(Vector2i(2, 7));
+	board(7, 3)->setBoardPosition(Vector2i(3, 7));
+	board(7, 4)->setBoardPosition(Vector2i(4, 7));
+	board(7, 5)->setBoardPosition(Vector2i(5, 7));
+	board(7, 6)->setBoardPosition(Vector2i(6, 7));
+	board(7, 7)->setBoardPosition(Vector2i(7, 7));
+
+	// Setup valid moves.
+	board(0, 0)->updateValidMoves();
+	board(0, 1)->updateValidMoves();
+	board(0, 2)->updateValidMoves();
+	board(0, 3)->updateValidMoves();
+	board(0, 4)->updateValidMoves();
+	board(0, 5)->updateValidMoves();
+	board(0, 6)->updateValidMoves();
+	board(0, 7)->updateValidMoves();
+	board(1, 0)->updateValidMoves();
+	board(1, 1)->updateValidMoves();
+	board(1, 2)->updateValidMoves();
+	board(1, 3)->updateValidMoves();
+	board(1, 4)->updateValidMoves();
+	board(1, 5)->updateValidMoves();
+	board(1, 6)->updateValidMoves();
+	board(1, 7)->updateValidMoves();
+	board(6, 0)->updateValidMoves();
+	board(6, 1)->updateValidMoves();
+	board(6, 2)->updateValidMoves();
+	board(6, 3)->updateValidMoves();
+	board(6, 4)->updateValidMoves();
+	board(6, 5)->updateValidMoves();
+	board(6, 6)->updateValidMoves();
+	board(6, 7)->updateValidMoves();
+	board(7, 0)->updateValidMoves();
+	board(7, 1)->updateValidMoves();
+	board(7, 2)->updateValidMoves();
+	board(7, 3)->updateValidMoves();
+	board(7, 4)->updateValidMoves();
+	board(7, 5)->updateValidMoves();
+	board(7, 6)->updateValidMoves();
+	board(7, 7)->updateValidMoves();
 
 	flags[0] = true;
 
+	Piece* piece = nullptr;
 	Piece* moving_piece = nullptr;
 	Vector2i mouse_pos;
 	Vector2i board_pos;
@@ -407,7 +387,7 @@ int main()
 	// Main window loop.
 	while (window.isOpen())
 	{
-		copy(sf::Mouse::getPosition(window), mouse_pos);
+		mouse_pos = sf::Mouse::getPosition(window);
 		board_pos = (mouse_pos / 100);
 
 		if (moving_piece != nullptr)
@@ -419,12 +399,17 @@ int main()
 			board_pos_str = board_pos.toString();
 			flags_str = reverse_str(flags.to_string());
 			
-			if (moving_piece != nullptr)
-				moving_piece_str = moving_piece->getName() + ": " + moving_piece->getBoardPosition().toString();
+			if (is_within_inclusive(board_pos.x, 0, 7) && is_within_inclusive(board_pos.y, 0, 7))
+				piece = board(board_pos.y, board_pos.x);
 			else
-				moving_piece_str = "";
+				piece = nullptr;
 
-			moving_piece_text.setString(moving_piece_str);
+			if (piece != nullptr)
+				piece_str = piece->getName() + ": " + piece->getBoardPosition().toString();
+			else
+				piece_str = "";
+
+			piece_text.setString(piece_str);
 
 			mouse_pos_text.setString(mouse_pos_str);
 			board_pos_text.setString(board_pos_str);
@@ -443,40 +428,50 @@ int main()
 
 				case Event::MouseButtonPressed:
 					
-					if (event.key.code == Mouse::Button::Left)
+					if (event.key.code == sf::Mouse::Button::Left)
 					{
 						if (!flags[3])
 						{
 							if (flags[0])
 							{
-								if (board(board_pos.y, board_pos.x) != nullptr && board(board_pos.y, board_pos.x)->getID() < 7)
+								if (isPieceWhite(board_pos.x, board_pos.y))
 								{
-									swap(moving_piece, board(board_pos.y, board_pos.x));
+									moving_piece = board(board_pos.y, board_pos.x);
+									moving_piece->updateValidMoves();
 									flags[3] = true;
 								}
 							}
 							else
 							{
-								if (board(board_pos.y, board_pos.x) != nullptr && board(board_pos.y, board_pos.x)->getID() > 6)
+								if (isPieceBlack(board_pos.x, board_pos.y))
 								{
-									swap(moving_piece, board(board_pos.y, board_pos.x));
+									moving_piece = board(board_pos.y, board_pos.x);
+									moving_piece->updateValidMoves();
 									flags[3] = true;
 								}
 							}
 						}
 						else if (flags[3])
 						{
-							if (board(static_cast<Vector2<size_t>>(board_pos)) == nullptr)
+							if (moving_piece->canMoveTo(board_pos))
 							{
-								if (moving_piece->canMoveTo(board_pos))
-								{
-									moving_piece->setBoardPosition(board_pos);
-									moving_piece->getSprite().setPosition(board_pos.x * 100, board_pos.y * 100);
-									swap(moving_piece, board(static_cast<Vector2<size_t>>(board_pos)));
-									flags.flip(0);
-									flags[3] = false;
-								}
+								board(moving_piece->getBoardPosition().y, moving_piece->getBoardPosition().x) = nullptr;
+								board(board_pos.y, board_pos.x) = moving_piece;
+								moving_piece->setBoardPosition(board_pos);
+								moving_piece = nullptr;
+								flags.flip(0);
+								flags[3] = false;
+								has_board_changed = true;
 							}
+						}
+					}
+					else if (event.key.code == sf::Mouse::Button::Right)
+					{
+						if (flags[3])
+						{
+							moving_piece->getSprite().setPosition(moving_piece->getBoardPosition().x * 100, moving_piece->getBoardPosition().y * 100);
+							moving_piece = nullptr;
+							flags[3] = false;
 						}
 					}
 
@@ -499,15 +494,43 @@ int main()
 		if (flags[3])
 			window.draw(moving_piece->getSprite());
 
+		// Print current board layout.
+		#ifdef _DEBUG
+
+			if (has_board_changed)
+			{
+				board_strs = to_string(board);
+
+				for (size_t i = 0; i < 8; ++i)
+					cout << board_strs[i] << endl;
+				cout << endl;
+			}
+
+			has_board_changed = false;
+
+		#endif // #ifdef _DEBUG
+
+		// Draw possible moves.
+		#ifdef _DEBUG
+
+			if (moving_piece != nullptr)
+			{
+				const vector<Vector2i>& validMoves = moving_piece->getValidMoves();
+				for (const Vector2i& elem : validMoves)
+					window.draw(red_square_sprites(elem.x, elem.y));
+			}
+
+		#endif // #ifdef _DEBUG
+
 		// Draw text.
 		#ifdef _DEBUG
 
 			window.draw(mouse_pos_text);
 			window.draw(board_pos_text);
 			window.draw(flags_text);
-			window.draw(moving_piece_text);
+			window.draw(piece_text);
 
-		#endif
+		#endif // #ifdef _DEBUG
 
 		window.display();
 	}
