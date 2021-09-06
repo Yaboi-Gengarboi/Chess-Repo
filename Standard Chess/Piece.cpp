@@ -80,6 +80,10 @@ void Piece::updateValidMoves()
 				_validMoves.push_back(Vector2i(_pos.x, 4));
 			if (isSpaceUpEmpty(_pos.x, _pos.y))
 				_validMoves.push_back(Vector2i(_pos.x, _pos.y - 1));
+			if (isPieceBlack(_pos.x - 1, _pos.y - 1))
+				_validMoves.push_back(Vector2i(_pos.x - 1, _pos.y - 1));
+			if (isPieceBlack(_pos.x + 1, _pos.y - 1))
+				_validMoves.push_back(Vector2i(_pos.x + 1, _pos.y - 1));
 
 		break;
 
@@ -89,6 +93,10 @@ void Piece::updateValidMoves()
 				_validMoves.push_back(Vector2i(_pos.x, 3));
 			if (isSpaceDownEmpty(_pos.x, _pos.y))
 				_validMoves.push_back(Vector2i(_pos.x, _pos.y + 1));
+			if (isPieceWhite(_pos.x - 1, _pos.y + 1))
+				_validMoves.push_back(Vector2i(_pos.x - 1, _pos.y + 1));
+			if (isPieceWhite(_pos.x + 1, _pos.y + 1))
+				_validMoves.push_back(Vector2i(_pos.x + 1, _pos.y + 1));
 
 		break;
 
@@ -109,20 +117,26 @@ bool Piece::canMoveTo(const Vector2i& pos) const
 
 bool isPieceWhite(size_t x, size_t y)
 {
-	Piece* piece = board(y, x);
+	if (is_within_inclusive(int(x), 0, 7) && is_within_inclusive(int(y), 0, 7))
+	{
+		Piece* piece = board(y, x);
 
-	if (piece != nullptr)
-		return piece->getID() <= 6;
+		if (piece != nullptr)
+			return piece->getID() <= 6;
+	}
 
 	return false;
 }
 
 bool isPieceBlack(size_t x, size_t y)
 {
-	Piece* piece = board(y, x);
+	if (is_within_inclusive(int(x), 0, 7) && is_within_inclusive(int(y), 0, 7))
+	{
+		Piece* piece = board(y, x);
 
-	if (piece != nullptr)
-		return piece->getID() >= 7;
+		if (piece != nullptr)
+			return piece->getID() >= 7;
+	}
 
 	return false;
 }
